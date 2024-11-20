@@ -14,47 +14,18 @@ export default createConfig({
     unichainSepolia: { chainId: 1301, transport: http(process.env.PONDER_RPC_URL_1301) },
   },
   contracts: {
-    TheCompactMainnet: {
+    TheCompact: {
       abi: TheCompactAbi,
       address: "0x00000000000018DF021Ff2467dF97ff846E09f48",
-      network: "mainnet",
-      startBlock: 21124904,
-    },
-    TheCompactSepolia: {
-      abi: TheCompactAbi,
-      address: "0x00000000000018DF021Ff2467dF97ff846E09f48",
-      network: "sepolia",
-      startBlock: 7020093,
-    },
-    TheCompactBase: {
-      abi: TheCompactAbi,
-      address: "0x00000000000018DF021Ff2467dF97ff846E09f48",
-      network: "base",
-      startBlock: 22031390,
-    },
-    TheCompactBaseSepolia: {
-      abi: TheCompactAbi,
-      address: "0x00000000000018DF021Ff2467dF97ff846E09f48",
-      network: "baseSepolia",
-      startBlock: 17541891,
-    },
-    TheCompactOptimism: {
-      abi: TheCompactAbi,
-      address: "0x00000000000018DF021Ff2467dF97ff846E09f48",
-      network: "optimism",
-      startBlock: 127708222,
-    },
-    TheCompactOptimismSepolia: {
-      abi: TheCompactAbi,
-      address: "0x00000000000018DF021Ff2467dF97ff846E09f48",
-      network: "optimismSepolia",
-      startBlock: 19606376,
-    },
-    TheCompactUnichainSepolia: {
-      abi: TheCompactAbi,
-      address: "0x00000000000018DF021Ff2467dF97ff846E09f48",
-      network: "unichainSepolia",
-      startBlock: 3999509,
+      network: {
+        mainnet: { startBlock: 21124904 },
+        sepolia: { startBlock: 7020093 },
+        base: { startBlock: 22031390 },
+        baseSepolia: { startBlock: 17541891 },
+        optimism: { startBlock: 127708222 },
+        optimismSepolia: { startBlock: 19606376 },
+        unichainSepolia: { startBlock: 3999509 },
+      },
     },
   },
 });

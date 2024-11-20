@@ -39,39 +39,3 @@ export const registrationRelations = relations(allocator_registration, ({ one })
     references: [allocator.id],
   }),
 }));
-
-export const event = onchainTable(
-  "event",
-  (t) => ({
-    id: t.text().notNull(),
-    chain_id: t.integer().notNull(),
-    network: t.text().notNull(),
-    block_number: t.integer().notNull(),
-    transaction_hash: t.text().notNull(),
-    event_name: t.text().notNull(),
-    event_data: t.json(),
-    timestamp: t.integer().notNull(),
-  }),
-  (table) => ({
-    pk: primaryKey({ columns: [table.id] }),
-    chainIdIdx: index().on(table.chain_id),
-    blockNumberIdx: index().on(table.block_number),
-  })
-);
-
-export const contract = onchainTable(
-  "contract",
-  (t) => ({
-    id: t.text().notNull(),
-    chain_id: t.integer().notNull(),
-    network: t.text().notNull(),
-    address: t.text().notNull(),
-    deployment_block: t.integer().notNull(),
-    last_indexed_block: t.integer().notNull(),
-  }),
-  (table) => ({
-    pk: primaryKey({ columns: [table.id] }),
-    chainIdIdx: index().on(table.chain_id),
-    addressIdx: index().on(table.address),
-  })
-);

@@ -36,10 +36,41 @@ pnpm install
 pnpm ponder dev
 ```
 
+## Usage
+
+Once the indexer is running, you can query the GraphQL API at `http://localhost:42069`. Here's an example query to get all allocators and their registrations across different networks:
+
+```graphql
+query {
+  allocators {
+    totalCount
+    items {
+      id
+      allocator_id
+      first_seen_at
+      registrations {
+        totalCount
+        items {
+          id
+          chain_id
+          registered_at
+        }
+      }
+    }
+  }
+}
+```
+
+This query returns:
+- All registered allocators
+- Their unique IDs and first seen timestamps
+- All networks where each allocator is registered
+- Registration timestamps for each network
+
 ## Environment Variables
 
 Create a `.env` file with RPC URLs for each network:
-```
+```bash
 PONDER_RPC_URL_1=           # Mainnet
 PONDER_RPC_URL_11155111=    # Sepolia
 PONDER_RPC_URL_8453=        # Base
