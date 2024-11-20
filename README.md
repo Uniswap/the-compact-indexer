@@ -17,7 +17,6 @@ This indexer tracks events from The Compact contract across multiple networks:
 
 - Contract-specific events:
   - AllocatorRegistered
-  - Approval
   - Claim
   - CompactRegistered
   - ForcedWithdrawalStatusUpdated
@@ -25,6 +24,7 @@ This indexer tracks events from The Compact contract across multiple networks:
 - ERC6909 events:
   - Transfer
   - OperatorSet
+  - Approval
 
 ## Development
 
