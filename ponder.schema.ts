@@ -35,6 +35,7 @@ export const allocator_chain_id = onchainTable(
     pk: primaryKey({ columns: [table.id] }),
     allocatorIdx: index().on(table.allocator_address),
     chainIdIdx: index().on(table.chain_id),
+    allocatorChainIdx: index().on(table.allocator_address, table.chain_id),
   })
 );
 
@@ -137,44 +138,24 @@ export const claim = onchainTable(
     claim_hash: t.text().notNull(),
     chain_id: t.bigint().notNull(),
     sponsor_id: t.text().notNull(),
-    allocator_id: t.text().notNull(),
+    allocator_address: t.text().notNull(),
     arbiter: t.text().notNull(),
     timestamp: t.bigint().notNull(),
     block_number: t.bigint().notNull(),
+    allocator_id: t.bigint().notNull(),
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.id] }),
     claimHashIdx: index().on(table.claim_hash),
     chainIdIdx: index().on(table.chain_id),
     sponsorIdx: index().on(table.sponsor_id),
-    allocatorIdx: index().on(table.allocator_id),
+    allocatorIdx: index().on(table.allocator_address),
+    allocatorChainIdx: index().on(table.allocator_address, table.chain_id),
   })
 );
 
-export const allocatorRelations = relations(allocator, ({ many }) => ({
-  registrations: many(allocator_registration, {
-    fields: [allocator.id],
-    references: [allocator_registration.allocator_address],
-  }),
-  chains: many(allocator_chain_id, {
-    fields: [allocator.id],
-    references: [allocator_chain_id.allocator_address],
-  }),
-  claims: many(claim, {
-    fields: [allocator.id],
-    references: [claim.allocator_id],
-  }),
-}));
-
-export const allocatorRegistrationRelations = relations(allocator_registration, ({ one }) => ({
-  allocator: one(allocator, {
-    fields: [allocator_registration.allocator_address],
-    references: [allocator.id],
-  }),
-}));
-
 export const allocatorChainIdRelations = relations(allocator_chain_id, ({ one }) => ({
-  allocator: one(allocator, {
+  parent: one(allocator, {
     fields: [allocator_chain_id.allocator_address],
     references: [allocator.id],
   }),
@@ -186,7 +167,33 @@ export const claimRelations = relations(claim, ({ one }) => ({
     references: [account.id],
   }),
   allocator: one(allocator, {
-    fields: [claim.allocator_id],
+    fields: [claim.allocator_address],
+    references: [allocator.id],
+  }),
+  allocator_chain_id: one(allocator_chain_id, {
+    fields: [claim.allocator_address, claim.chain_id],
+    references: [allocator_chain_id.allocator_address, allocator_chain_id.chain_id],
+  }),
+}));
+
+export const allocatorRelations = relations(allocator, ({ many }) => ({
+  registrations: many(allocator_registration, {
+    fields: [allocator.id],
+    references: [allocator_registration.allocator_address],
+  }),
+  supported_chains: many(allocator_chain_id, {
+    fields: [allocator.id],
+    references: [allocator_chain_id.allocator_address],
+  }),
+  claims: many(claim, {
+    fields: [allocator.id],
+    references: [claim.allocator_address],
+  }),
+}));
+
+export const allocatorRegistrationRelations = relations(allocator_registration, ({ one }) => ({
+  allocator: one(allocator, {
+    fields: [allocator_registration.allocator_address],
     references: [allocator.id],
   }),
 }));
@@ -265,5 +272,8 @@ export const accountResourceLockBalanceRelations = relations(account_resource_lo
 export const resolvers = {
   allocator_chain_id: {
     allocator_id: (chainId: any) => chainId.allocator_id,
+  },
+  claim: {
+    allocator_id: (claim: any) => claim.allocator_id,
   },
 };

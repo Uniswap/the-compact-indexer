@@ -320,44 +320,49 @@ async function handleForcedWithdrawalStatusUpdated({ event, context }: any) {
 }
 
 async function handleClaim({ event, context }: any) {
-  const { sponsor, allocator: allocatorAddress, arbiter, claimHash } = event.args;
-  const chainId = context.network.chainId;
-  const timestamp = event.block.timestamp;
-
   try {
-    const sponsorLower = sponsor.toLowerCase();
-    const allocatorLower = allocatorAddress.toLowerCase();
-    const arbiterLower = arbiter.toLowerCase();
+    const { sponsor, allocator: allocatorAddress, arbiter, claimHash } = event.args;
+    const chainId = context.network.chainId;
+    const timestamp = event.block.timestamp;
+    const blockNumber = event.block.number;
 
-    // Ensure account exists
-    const existingAccount = await context.db.find(account, { id: sponsorLower });
-    if (!existingAccount) {
+    // Normalize addresses
+    const normalizedSponsorAddress = sponsor.toLowerCase();
+    const normalizedAllocatorAddress = allocatorAddress.toLowerCase();
+    const normalizedArbiterAddress = arbiter.toLowerCase();
+
+    // Ensure sponsor account exists
+    const existingSponsor = await context.db.find(account, { id: normalizedSponsorAddress });
+    if (!existingSponsor) {
       await context.db.insert(account).values({
-        id: sponsorLower,
+        id: normalizedSponsorAddress,
         first_seen_at: timestamp,
       });
     }
 
     // Ensure allocator exists
-    const existingAllocator = await context.db.find(allocator, { id: allocatorLower });
+    const existingAllocator = await context.db.find(allocator, { id: normalizedAllocatorAddress });
     if (!existingAllocator) {
       await context.db.insert(allocator).values({
-        id: allocatorLower,
+        id: normalizedAllocatorAddress,
         first_seen_at: timestamp,
       });
     }
 
     // Create claim record
+    const claimId = `${claimHash}-${chainId}`;
     await context.db.insert(claim).values({
-      id: `${claimHash}-${chainId}`,
+      id: claimId,
       claim_hash: claimHash,
       chain_id: chainId,
-      sponsor_id: sponsorLower,
-      allocator_id: allocatorLower,
-      arbiter: arbiterLower,
+      sponsor_id: normalizedSponsorAddress,
+      allocator_id: normalizedAllocatorAddress,
+      allocator_address: normalizedAllocatorAddress,
+      arbiter: normalizedArbiterAddress,
       timestamp,
-      block_number: event.block.number,
+      block_number: blockNumber,
     });
+
   } catch (error) {
     console.error("Error in handleClaim:", error);
     throw error;
