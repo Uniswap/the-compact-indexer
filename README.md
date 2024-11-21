@@ -126,3 +126,35 @@ This query returns:
       - Lock details (ID, allocator, reset period, scope)
       - Lock-specific balance
       - Lock-specific total supply
+
+#### Get all accounts holding a specific resource lock
+```graphql
+query {
+	resource_lock(id: "217...") {
+    id
+    token {
+      token_address
+      chain_id
+    }
+    allocator {
+      allocator_address
+    }
+    reset_period
+    is_multichain
+    total_supply
+    account_balances {
+      items {
+        account {
+          id  # account address
+        }
+        balance
+      }
+    }
+  }
+}
+```
+
+This query returns:
+- Lock details (ID, token, allocator, reset period, scope)
+- Lock-specific total supply
+- All accounts holding a balance in the lock

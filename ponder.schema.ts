@@ -121,7 +121,18 @@ export const allocatorRegistrationRelations = relations(allocator_registration, 
   }),
 }));
 
-export const resourceLockRelations = relations(resource_lock, ({ one }) => ({
+export const tokenRegistrationRelations = relations(token_registration, ({ many }) => ({
+  account_balances: many(account_token_balance, {
+    fields: [token_registration.id],
+    references: [account_token_balance.token_registration_id],
+  }),
+  resource_locks: many(resource_lock, {
+    fields: [token_registration.id],
+    references: [resource_lock.token_registration_id],
+  }),
+}));
+
+export const resourceLockRelations = relations(resource_lock, ({ one, many }) => ({
   token: one(token_registration, {
     fields: [resource_lock.token_registration_id],
     references: [token_registration.id],
@@ -129,6 +140,10 @@ export const resourceLockRelations = relations(resource_lock, ({ one }) => ({
   allocator: one(allocator_registration, {
     fields: [resource_lock.allocator_registration_id],
     references: [allocator_registration.id],
+  }),
+  account_balances: many(account_resource_lock_balance, {
+    fields: [resource_lock.id],
+    references: [account_resource_lock_balance.resource_lock_id],
   }),
 }));
 
