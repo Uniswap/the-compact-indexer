@@ -1,5 +1,5 @@
 import { ponder } from "@/generated";
-import { allocator, allocator_registration, token_registration, resource_lock, account_token_balance, account_resource_lock_balance, account } from "../ponder.schema";
+import { allocator, allocator_registration, deposited_token, resource_lock, account_token_balance, account_resource_lock_balance, account } from "../ponder.schema";
 
 const NETWORK_TO_CHAIN_ID: Record<string, number> = {
   "mainnet": 1,
@@ -100,10 +100,10 @@ async function handleTransfer({ event, context }: any) {
 
     // Handle token registration and resource lock updates
     if (isMint) {
-      const existingToken = await context.db.find(token_registration, { id: tokenRegistrationId });
+      const existingToken = await context.db.find(deposited_token, { id: tokenRegistrationId });
 
       if (!existingToken) {
-        await context.db.insert(token_registration).values({
+        await context.db.insert(deposited_token).values({
           id: tokenRegistrationId,
           chain_id: chainId,
           token_address: tokenAddress,
@@ -111,7 +111,7 @@ async function handleTransfer({ event, context }: any) {
           total_supply: transferAmount,
         });
       } else {
-        await context.db.update(token_registration, {
+        await context.db.update(deposited_token, {
           id: tokenRegistrationId
         }, {
           total_supply: existingToken.total_supply + transferAmount,
@@ -132,11 +132,11 @@ async function handleTransfer({ event, context }: any) {
         total_supply: transferAmount,
       });
     } else if (isBurn) {
-      const existingToken = await context.db.find(token_registration, { id: tokenRegistrationId });
+      const existingToken = await context.db.find(deposited_token, { id: tokenRegistrationId });
       const existingLock = await context.db.find(resource_lock, { id: resourceLockId });
 
       if (existingToken && existingLock) {
-        await context.db.update(token_registration, {
+        await context.db.update(deposited_token, {
           id: tokenRegistrationId
         }, {
           total_supply: existingToken.total_supply - transferAmount,

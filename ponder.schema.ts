@@ -39,8 +39,8 @@ export const allocator_registration = onchainTable(
   })
 );
 
-export const token_registration = onchainTable(
-  "token_registration",
+export const deposited_token = onchainTable(
+  "deposited_token",
   (t) => ({
     id: t.text().notNull(), // token_address-chainId
     chain_id: t.bigint().notNull(),
@@ -125,21 +125,21 @@ export const allocatorRegistrationRelations = relations(allocator_registration, 
   }),
 }));
 
-export const tokenRegistrationRelations = relations(token_registration, ({ many }) => ({
+export const depositedTokenRelations = relations(deposited_token, ({ many }) => ({
   account_balances: many(account_token_balance, {
-    fields: [token_registration.id],
+    fields: [deposited_token.id],
     references: [account_token_balance.token_registration_id],
   }),
   resource_locks: many(resource_lock, {
-    fields: [token_registration.id],
+    fields: [deposited_token.id],
     references: [resource_lock.token_registration_id],
   }),
 }));
 
 export const resourceLockRelations = relations(resource_lock, ({ one, many }) => ({
-  token: one(token_registration, {
+  token: one(deposited_token, {
     fields: [resource_lock.token_registration_id],
-    references: [token_registration.id],
+    references: [deposited_token.id],
   }),
   allocator: one(allocator_registration, {
     fields: [resource_lock.allocator_registration_id],
@@ -156,9 +156,9 @@ export const accountTokenBalanceRelations = relations(account_token_balance, ({ 
     fields: [account_token_balance.account_id],
     references: [account.id],
   }),
-  token: one(token_registration, {
+  token: one(deposited_token, {
     fields: [account_token_balance.token_registration_id],
-    references: [token_registration.id],
+    references: [deposited_token.id],
   }),
   resource_locks: many(account_resource_lock_balance, {
     fields: [account_token_balance.account_id, account_token_balance.token_registration_id],
