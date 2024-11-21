@@ -78,10 +78,10 @@ export const resource_lock = onchainTable(
     allocRegIdx: index().on(table.allocator_registration_id),
   }),
   (table) => ({
-    token: many(deposited_token, {
+    token: relations.many(deposited_token, {
       references: [{ columns: [table.token_registration_id], foreignColumns: [deposited_token.id] }],
     }),
-    allocator: many(allocator_registration, {
+    allocator: relations.many(allocator_registration, {
       references: [{ columns: [table.allocator_registration_id], foreignColumns: [allocator_registration.id] }],
     }),
   })
@@ -204,21 +204,26 @@ export const resolvers = {
   resource_lock: {
     withdrawal_status: async (resourceLock: any, _: any, context: any) => {
       const accountId = context.parent?.account?.id;
-      if (!accountId) return 0;
+      if (!accountId) return null;
 
       const balance = await context.db.find(account_resource_lock_balance, {
         id: `${accountId}-${resourceLock.id}`
       });
-      return balance?.withdrawal_status ?? 0;
+      return balance?.withdrawal_status ?? null;
     },
     withdrawable_at: async (resourceLock: any, _: any, context: any) => {
       const accountId = context.parent?.account?.id;
-      if (!accountId) return 0n;
+      if (!accountId) return null;
 
       const balance = await context.db.find(account_resource_lock_balance, {
         id: `${accountId}-${resourceLock.id}`
       });
-      return balance?.withdrawable_at ?? 0n;
+      
+      // Return null if status is 0 (Disabled) or balance not found
+      if (!balance || balance.withdrawal_status === 0) return null;
+      
+      // Return null if withdrawable_at is 0n, otherwise return the value
+      return balance.withdrawable_at === 0n ? null : balance.withdrawable_at;
     }
   }
 };
