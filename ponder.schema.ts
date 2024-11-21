@@ -135,6 +135,10 @@ export const accountRelations = relations(account, ({ many }) => ({
     fields: [account.id],
     references: [account_token_balance.account_id],
   }),
+  resource_locks: many(account_resource_lock_balance, {
+    fields: [account.id],
+    references: [account_resource_lock_balance.account_id],
+  }),
 }));
 
 export const allocatorRegistrationRelations = relations(allocator_registration, ({ one }) => ({

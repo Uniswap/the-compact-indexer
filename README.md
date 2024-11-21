@@ -160,3 +160,34 @@ This query returns:
 - Lock details (ID, original lock ID, chain ID, token, allocator, reset period, scope)
 - Lock-specific total supply
 - All accounts holding a balance in the lock
+
+#### Get account resource locks directly with balances and token info
+```graphql
+query {
+  accounts {
+    items {
+      id
+      resource_locks {
+        items {
+          resourceLock {
+            lock_id
+            chain_id
+            token {
+              token_address
+            }
+            withdrawal_status
+            withdrawable_at
+          }
+          balance  # Account's balance for this resource lock
+        }
+      }
+    }
+  }
+}
+```
+
+This query demonstrates:
+- Direct querying of resource locks for each account
+- Access to lock details including withdrawal status
+- Associated token information
+- Account-specific balances for each resource lock
