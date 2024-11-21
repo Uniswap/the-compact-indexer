@@ -3,7 +3,7 @@ import { onchainTable, relations, index, primaryKey } from "@ponder/core";
 export const account = onchainTable(
   "account",
   (t) => ({
-    id: t.text().notNull(), // account_address
+    id: t.text().notNull(),
     first_seen_at: t.bigint().notNull(),
   }),
   (table) => ({
@@ -15,19 +15,33 @@ export const allocator = onchainTable(
   "allocator",
   (t) => ({
     id: t.text().notNull(),
-    allocator_id: t.text().notNull(),
     first_seen_at: t.bigint().notNull(),
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.id] }),
-    idIdx: index().on(table.allocator_id),
+  })
+);
+
+export const allocator_chain_id = onchainTable(
+  "allocator_chain_id",
+  (t) => ({
+    id: t.text().notNull(),
+    allocator_address: t.text().notNull(),
+    chain_id: t.bigint().notNull(),
+    allocator_id: t.bigint().notNull(),
+    first_seen_at: t.bigint().notNull(),
+  }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+    allocatorIdx: index().on(table.allocator_address),
+    chainIdIdx: index().on(table.chain_id),
   })
 );
 
 export const allocator_registration = onchainTable(
   "allocator_registration",
   (t) => ({
-    id: t.text().notNull(), // allocator_address-chainId
+    id: t.text().notNull(),
     allocator_address: t.text().notNull(),
     chain_id: t.bigint().notNull(),
     registered_at: t.bigint().notNull(),
@@ -42,7 +56,7 @@ export const allocator_registration = onchainTable(
 export const deposited_token = onchainTable(
   "deposited_token",
   (t) => ({
-    id: t.text().notNull(), // token_address-chainId
+    id: t.text().notNull(),
     chain_id: t.bigint().notNull(),
     token_address: t.text().notNull(),
     first_seen_at: t.bigint().notNull(),
@@ -58,8 +72,8 @@ export const deposited_token = onchainTable(
 export const resource_lock = onchainTable(
   "resource_lock",
   (t) => ({
-    id: t.text().notNull(), // lock_id-chainId
-    lock_id: t.text().notNull(), // original ERC-6909 ID
+    id: t.text().notNull(),
+    lock_id: t.text().notNull(),
     chain_id: t.bigint().notNull(),
     token_registration_id: t.text().notNull(),
     allocator_registration_id: t.text().notNull(),
@@ -76,22 +90,14 @@ export const resource_lock = onchainTable(
     chainIdIdx: index().on(table.chain_id),
     tokenRegIdx: index().on(table.token_registration_id),
     allocRegIdx: index().on(table.allocator_registration_id),
-  }),
-  (table) => ({
-    token: relations.many(deposited_token, {
-      references: [{ columns: [table.token_registration_id], foreignColumns: [deposited_token.id] }],
-    }),
-    allocator: relations.many(allocator_registration, {
-      references: [{ columns: [table.allocator_registration_id], foreignColumns: [allocator_registration.id] }],
-    }),
   })
 );
 
 export const account_token_balance = onchainTable(
   "account_token_balance",
   (t) => ({
-    id: t.text().notNull(), // account_address-token_registration_id
-    account_id: t.text().notNull(), // account_address
+    id: t.text().notNull(),
+    account_id: t.text().notNull(),
     token_registration_id: t.text().notNull(),
     balance: t.bigint().notNull(),
     last_updated_at: t.bigint().notNull(),
@@ -106,13 +112,13 @@ export const account_token_balance = onchainTable(
 export const account_resource_lock_balance = onchainTable(
   "account_resource_lock_balance",
   (t) => ({
-    id: t.text().notNull(), // account_address-resource_lock_id
-    account_id: t.text().notNull(), // account_address
+    id: t.text().notNull(),
+    account_id: t.text().notNull(),
     resource_lock_id: t.text().notNull(),
     token_registration_id: t.text().notNull(),
     balance: t.bigint().notNull(),
-    withdrawal_status: t.integer().notNull().default(0), // Maps to ForcedWithdrawalStatus enum
-    withdrawable_at: t.bigint().notNull().default(0n), // Only set when status is Pending
+    withdrawal_status: t.integer().notNull().default(0),
+    withdrawable_at: t.bigint().notNull().default(0n),
     last_updated_at: t.bigint().notNull(),
   }),
   (table) => ({
@@ -124,13 +130,72 @@ export const account_resource_lock_balance = onchainTable(
   })
 );
 
-export enum ForcedWithdrawalStatus {
-  Disabled = 0,
-  Pending = 1,
-  Enabled = 2,
-}
+export const claim = onchainTable(
+  "claim",
+  (t) => ({
+    id: t.text().notNull(),
+    claim_hash: t.text().notNull(),
+    chain_id: t.bigint().notNull(),
+    sponsor_id: t.text().notNull(),
+    allocator_id: t.text().notNull(),
+    arbiter: t.text().notNull(),
+    timestamp: t.bigint().notNull(),
+    block_number: t.bigint().notNull(),
+  }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+    claimHashIdx: index().on(table.claim_hash),
+    chainIdIdx: index().on(table.chain_id),
+    sponsorIdx: index().on(table.sponsor_id),
+    allocatorIdx: index().on(table.allocator_id),
+  })
+);
+
+export const allocatorRelations = relations(allocator, ({ many }) => ({
+  registrations: many(allocator_registration, {
+    fields: [allocator.id],
+    references: [allocator_registration.allocator_address],
+  }),
+  chains: many(allocator_chain_id, {
+    fields: [allocator.id],
+    references: [allocator_chain_id.allocator_address],
+  }),
+  claims: many(claim, {
+    fields: [allocator.id],
+    references: [claim.allocator_id],
+  }),
+}));
+
+export const allocatorRegistrationRelations = relations(allocator_registration, ({ one }) => ({
+  allocator: one(allocator, {
+    fields: [allocator_registration.allocator_address],
+    references: [allocator.id],
+  }),
+}));
+
+export const allocatorChainIdRelations = relations(allocator_chain_id, ({ one }) => ({
+  allocator: one(allocator, {
+    fields: [allocator_chain_id.allocator_address],
+    references: [allocator.id],
+  }),
+}));
+
+export const claimRelations = relations(claim, ({ one }) => ({
+  sponsor: one(account, {
+    fields: [claim.sponsor_id],
+    references: [account.id],
+  }),
+  allocator: one(allocator, {
+    fields: [claim.allocator_id],
+    references: [allocator.id],
+  }),
+}));
 
 export const accountRelations = relations(account, ({ many }) => ({
+  claims: many(claim, {
+    fields: [account.id],
+    references: [claim.sponsor_id],
+  }),
   token_balances: many(account_token_balance, {
     fields: [account.id],
     references: [account_token_balance.account_id],
@@ -138,13 +203,6 @@ export const accountRelations = relations(account, ({ many }) => ({
   resource_locks: many(account_resource_lock_balance, {
     fields: [account.id],
     references: [account_resource_lock_balance.account_id],
-  }),
-}));
-
-export const allocatorRegistrationRelations = relations(allocator_registration, ({ one }) => ({
-  allocator: one(allocator, {
-    fields: [allocator_registration.allocator_address],
-    references: [allocator.allocator_id],
   }),
 }));
 
@@ -205,29 +263,7 @@ export const accountResourceLockBalanceRelations = relations(account_resource_lo
 }));
 
 export const resolvers = {
-  resource_lock: {
-    withdrawal_status: async (resourceLock: any, _: any, context: any) => {
-      const accountId = context.parent?.account?.id;
-      if (!accountId) return null;
-
-      const balance = await context.db.find(account_resource_lock_balance, {
-        id: `${accountId}-${resourceLock.id}`
-      });
-      return balance?.withdrawal_status ?? null;
-    },
-    withdrawable_at: async (resourceLock: any, _: any, context: any) => {
-      const accountId = context.parent?.account?.id;
-      if (!accountId) return null;
-
-      const balance = await context.db.find(account_resource_lock_balance, {
-        id: `${accountId}-${resourceLock.id}`
-      });
-      
-      // Return null if status is 0 (Disabled) or balance not found
-      if (!balance || balance.withdrawal_status === 0) return null;
-      
-      // Return null if withdrawable_at is 0n, otherwise return the value
-      return balance.withdrawable_at === 0n ? null : balance.withdrawable_at;
-    }
-  }
+  allocator_chain_id: {
+    allocator_id: (chainId: any) => chainId.allocator_id,
+  },
 };

@@ -44,8 +44,11 @@ Next, install dependencies and run the indexer:
 # Install dependencies
 pnpm install
 
+# Run codegen
+pnpm ponder codegen
+
 # Start the indexer
-pnpm ponder dev
+pnpm dev
 ```
 
 ## Usage
@@ -136,18 +139,12 @@ query {
     chain_id
     token {
       token_address
-      chain_id
     }
-    allocator {
-      allocator_address
-    }
-    reset_period
-    is_multichain
-    total_supply
     account_balances {
+      totalCount
       items {
         account {
-          id  # account address
+          id
         }
         balance
       }
@@ -157,9 +154,10 @@ query {
 ```
 
 This query returns:
-- Lock details (ID, original lock ID, chain ID, token, allocator, reset period, scope)
-- Lock-specific total supply
-- All accounts holding a balance in the lock
+- Resource lock details
+- Token address
+- All accounts holding this resource lock
+- Each account's balance
 
 #### Get account resource locks directly with balances and token info
 ```graphql
