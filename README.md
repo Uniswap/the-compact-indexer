@@ -26,8 +26,20 @@ This indexer tracks events from The Compact contract across multiple networks:
   - OperatorSet
   - Approval
 
-## Development
+## Installation
 
+Create a `.env` file with RPC URLs for each network:
+```bash
+PONDER_RPC_URL_1=           # Mainnet
+PONDER_RPC_URL_11155111=    # Sepolia
+PONDER_RPC_URL_8453=        # Base
+PONDER_RPC_URL_84532=       # Base Sepolia
+PONDER_RPC_URL_10=          # Optimism
+PONDER_RPC_URL_11155420=    # Optimism Sepolia
+PONDER_RPC_URL_1301=        # Unichain Sepolia
+```
+
+Next, install dependencies and run the indexer:
 ```bash
 # Install dependencies
 pnpm install
@@ -38,8 +50,9 @@ pnpm ponder dev
 
 ## Usage
 
-Once the indexer is running, you can query the GraphQL API at `http://localhost:42069`. Here's an example query to get all allocators and their registrations across different networks:
+Once the indexer is running, you can query the GraphQL API at `http://localhost:42069`. Here are a few example queries:
 
+#### Get all registered allocators across indexed networks
 ```graphql
 query {
   allocators {
@@ -67,22 +80,7 @@ This query returns:
 - All networks where each allocator is registered
 - Registration timestamps for each network
 
-## Environment Variables
-
-Create a `.env` file with RPC URLs for each network:
-```bash
-PONDER_RPC_URL_1=           # Mainnet
-PONDER_RPC_URL_11155111=    # Sepolia
-PONDER_RPC_URL_8453=        # Base
-PONDER_RPC_URL_84532=       # Base Sepolia
-PONDER_RPC_URL_10=          # Optimism
-PONDER_RPC_URL_11155420=    # Optimism Sepolia
-PONDER_RPC_URL_1301=        # Unichain Sepolia
-```
-
-## Example Query
-
-You can query account balances across tokens and their respective resource locks using the following GraphQL query:
+#### Get account balances across tokens and their respective resource locks
 
 ```graphql
 query {
@@ -119,7 +117,7 @@ query {
 ```
 
 This query returns:
-- All accounts that have interacted with the system
+- All accounts that have held a balance in a resource lock
 - For each account:
   - All tokens they hold, with:
     - Token details (chain ID, address, total supply)
