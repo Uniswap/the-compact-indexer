@@ -1,5 +1,5 @@
 import { ponder } from "@/generated";
-import { allocator, allocator_registration, deposited_token, resource_lock, account_token_balance, account_resource_lock_balance, account } from "../ponder.schema";
+import { allocator, allocator_registration, deposited_token, resource_lock, account_token_balance, account_resource_lock_balance, account, account_resource_lock_withdrawal_status } from "../ponder.schema";
 
 const NETWORK_TO_CHAIN_ID: Record<string, number> = {
   "mainnet": 1,
@@ -26,6 +26,12 @@ enum ResetPeriod {
 enum Scope {
   Multichain,
   ChainSpecific
+}
+
+enum ForcedWithdrawalStatus {
+  Pending,
+  Enabled,
+  Disabled
 }
 
 const RESET_PERIOD_VALUES = [
@@ -238,12 +244,64 @@ async function handleTransfer({ event, context }: any) {
           resource_lock_id: resourceLockId,
           token_registration_id: tokenRegistrationId,
           balance: transferAmount,
+          withdrawal_status: ForcedWithdrawalStatus.Disabled,
+          withdrawable_at: 0n,
           last_updated_at: timestamp,
         });
       }
     }
   } catch (error) {
     console.error("Error in handleTransfer:", error);
+    throw error;
+  }
+}
+
+async function handleForcedWithdrawalStatusUpdated({ event, context }: any) {
+  const { account: accountAddress, id, activating, withdrawableAt } = event.args;
+  const chainId = BigInt(context.network.chainId);
+  const timestamp = BigInt(event.block.timestamp);
+
+  try {
+    // Construct IDs
+    const lockId = id.toString();
+    const resourceLockId = `${lockId}-${chainId}`;
+    const balanceId = `${accountAddress}-${resourceLockId}`;
+
+    // Get the balance record
+    const existingBalance = await context.db.find(account_resource_lock_balance, { id: balanceId });
+    
+    if (existingBalance) {
+      if (activating) {
+        // Determine status based on withdrawableAt
+        const withdrawableAtBigInt = BigInt(withdrawableAt);
+        const status = withdrawableAtBigInt > timestamp 
+          ? ForcedWithdrawalStatus.Pending 
+          : ForcedWithdrawalStatus.Enabled;
+
+        // Update balance record with new withdrawal status
+        await context.db.update(account_resource_lock_balance, {
+          id: balanceId
+        }, {
+          withdrawal_status: status,
+          // Use 0n instead of null for "no withdrawal time"
+          withdrawable_at: withdrawableAtBigInt === 0n ? 0n : withdrawableAtBigInt,
+          last_updated_at: timestamp,
+        });
+      } else {
+        // Deactivating - set status to Disabled
+        await context.db.update(account_resource_lock_balance, {
+          id: balanceId
+        }, {
+          withdrawal_status: ForcedWithdrawalStatus.Disabled,
+          withdrawable_at: 0n,  // Use 0n for disabled state
+          last_updated_at: timestamp,
+        });
+      }
+    }
+    // If no balance record exists, we don't need to do anything
+    // The status will be set to Disabled by default when a balance is created
+  } catch (error) {
+    console.error("Error in handleForcedWithdrawalStatusUpdated:", error);
     throw error;
   }
 }
@@ -255,6 +313,10 @@ ponder.on("TheCompact:AllocatorRegistered", async ({ event, context }) => {
 
 ponder.on("TheCompact:Transfer", async ({ event, context }) => {
   await handleTransfer({ event, context });
+});
+
+ponder.on("TheCompact:ForcedWithdrawalStatusUpdated", async ({ event, context }) => {
+  await handleForcedWithdrawalStatusUpdated({ event, context });
 });
 
 // Other events that we'll implement later
@@ -296,18 +358,6 @@ ponder.on("TheCompact:Claim", async ({ event, context }) => {
 
 ponder.on("TheCompact:OperatorSet", async ({ event, context }) => {
   console.log(`OperatorSet event on ${context.network.name}:`, {
-    ...event,
-    args: event.args,
-    block: event.block,
-    address: event.address,
-    eventName: event.eventName,
-    source: event.source,
-    name: event.name
-  });
-});
-
-ponder.on("TheCompact:ForcedWithdrawalStatusUpdated", async ({ event, context }) => {
-  console.log(`ForcedWithdrawalStatusUpdated event on ${context.network.name}:`, {
     ...event,
     args: event.args,
     block: event.block,

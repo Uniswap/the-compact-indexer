@@ -67,6 +67,8 @@ export const resource_lock = onchainTable(
     is_multichain: t.boolean().notNull(),
     minted_at: t.bigint().notNull(),
     total_supply: t.bigint().notNull(),
+    withdrawal_status: t.integer().notNull().default(0),
+    withdrawable_at: t.bigint().notNull().default(0n),
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.id] }),
@@ -74,6 +76,14 @@ export const resource_lock = onchainTable(
     chainIdIdx: index().on(table.chain_id),
     tokenRegIdx: index().on(table.token_registration_id),
     allocRegIdx: index().on(table.allocator_registration_id),
+  }),
+  (table) => ({
+    token: many(deposited_token, {
+      references: [{ columns: [table.token_registration_id], foreignColumns: [deposited_token.id] }],
+    }),
+    allocator: many(allocator_registration, {
+      references: [{ columns: [table.allocator_registration_id], foreignColumns: [allocator_registration.id] }],
+    }),
   })
 );
 
@@ -101,6 +111,8 @@ export const account_resource_lock_balance = onchainTable(
     resource_lock_id: t.text().notNull(),
     token_registration_id: t.text().notNull(),
     balance: t.bigint().notNull(),
+    withdrawal_status: t.integer().notNull().default(0), // Maps to ForcedWithdrawalStatus enum
+    withdrawable_at: t.bigint().notNull().default(0n), // Only set when status is Pending
     last_updated_at: t.bigint().notNull(),
   }),
   (table) => ({
@@ -108,8 +120,15 @@ export const account_resource_lock_balance = onchainTable(
     accountIdx: index().on(table.account_id),
     resourceLockIdx: index().on(table.resource_lock_id),
     tokenRegIdx: index().on(table.token_registration_id),
+    withdrawalStatusIdx: index().on(table.withdrawal_status),
   })
 );
+
+export enum ForcedWithdrawalStatus {
+  Disabled = 0,
+  Pending = 1,
+  Enabled = 2,
+}
 
 export const accountRelations = relations(account, ({ many }) => ({
   token_balances: many(account_token_balance, {
@@ -180,3 +199,26 @@ export const accountResourceLockBalanceRelations = relations(account_resource_lo
     references: [account_token_balance.account_id, account_token_balance.token_registration_id],
   }),
 }));
+
+export const resolvers = {
+  resource_lock: {
+    withdrawal_status: async (resourceLock: any, _: any, context: any) => {
+      const accountId = context.parent?.account?.id;
+      if (!accountId) return 0;
+
+      const balance = await context.db.find(account_resource_lock_balance, {
+        id: `${accountId}-${resourceLock.id}`
+      });
+      return balance?.withdrawal_status ?? 0;
+    },
+    withdrawable_at: async (resourceLock: any, _: any, context: any) => {
+      const accountId = context.parent?.account?.id;
+      if (!accountId) return 0n;
+
+      const balance = await context.db.find(account_resource_lock_balance, {
+        id: `${accountId}-${resourceLock.id}`
+      });
+      return balance?.withdrawable_at ?? 0n;
+    }
+  }
+};
