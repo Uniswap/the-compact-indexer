@@ -1,5 +1,5 @@
 import { ponder } from "@/generated";
-import { allocator, allocator_registration, token_registration, resource_lock } from "../ponder.schema";
+import { allocator, allocator_registration, token_registration, resource_lock, account_token_balance, account_resource_lock_balance, account } from "../ponder.schema";
 
 const NETWORK_TO_CHAIN_ID: Record<string, number> = {
   "mainnet": 1,
@@ -77,22 +77,16 @@ async function handleAllocatorRegistered({ event, context }: any) {
 async function handleTransfer({ event, context }: any) {
   const { by, from, to, id, amount } = event.args;
   const chainId = BigInt(context.network.chainId);
+  const transferAmount = BigInt(amount);
 
   // Extract token address from the last 160 bits of the ID
-  // Convert BigInt to hex, pad to 64 chars, take last 40 chars (20 bytes/160 bits)
   const tokenAddress = "0x" + id.toString(16).padStart(64, "0").slice(-40);
 
   // Handle mints and burns
   const isMint = from === "0x0000000000000000000000000000000000000000";
   const isBurn = to === "0x0000000000000000000000000000000000000000";
-  
-  if (!isMint && !isBurn) {
-    return; // Only track mints and burns
-  }
 
   // Extract reset period and scope from amount
-  // Bits 252-254 (3 bits) for reset period (0-7)
-  // Bit 255 for scope (0 = Multichain, 1 = ChainSpecific)
   const resetPeriodIndex = Number((BigInt(amount) >> 252n) & 0x7n);
   const scope = Number((BigInt(amount) >> 255n) & 0x1n);
   const resetPeriod = RESET_PERIOD_VALUES[resetPeriodIndex];
@@ -101,30 +95,29 @@ async function handleTransfer({ event, context }: any) {
   try {
     const tokenRegistrationId = `${tokenAddress}-${chainId}`;
     const resourceLockId = id.toString();
+    const timestamp = BigInt(event.block.timestamp);
 
+    // Handle token registration and resource lock updates
     if (isMint) {
-      // Handle mint
       const existingToken = await context.db.find(token_registration, { id: tokenRegistrationId });
 
       if (!existingToken) {
-        // Create new token registration with initial supply
         await context.db.insert(token_registration).values({
           id: tokenRegistrationId,
           chain_id: chainId,
           token_address: tokenAddress,
-          first_seen_at: BigInt(event.block.timestamp),
-          total_supply: BigInt(event.args.amount), // Use event amount
+          first_seen_at: timestamp,
+          total_supply: transferAmount,
         });
       } else {
-        // Increment token's total supply
         await context.db.update(token_registration, {
           id: tokenRegistrationId
         }, {
-          total_supply: existingToken.total_supply + BigInt(event.args.amount),
+          total_supply: existingToken.total_supply + transferAmount,
         });
       }
 
-      // Create resource lock record with initial supply
+      // Create resource lock record
       const allocatorRegistrationId = `${by}-${chainId}`;
       await context.db.insert(resource_lock).values({
         id: resourceLockId,
@@ -132,27 +125,117 @@ async function handleTransfer({ event, context }: any) {
         allocator_registration_id: allocatorRegistrationId,
         reset_period: BigInt(resetPeriod),
         is_multichain: isMultichain,
-        minted_at: BigInt(event.block.timestamp),
-        total_supply: BigInt(event.args.amount), // Use event amount
+        minted_at: timestamp,
+        total_supply: transferAmount,
       });
     } else if (isBurn) {
-      // Handle burn
       const existingToken = await context.db.find(token_registration, { id: tokenRegistrationId });
       const existingLock = await context.db.find(resource_lock, { id: resourceLockId });
 
       if (existingToken && existingLock) {
-        // Decrement token's total supply
         await context.db.update(token_registration, {
           id: tokenRegistrationId
         }, {
-          total_supply: existingToken.total_supply - BigInt(event.args.amount),
+          total_supply: existingToken.total_supply - transferAmount,
         });
 
-        // Decrement resource lock's total supply
         await context.db.update(resource_lock, {
           id: resourceLockId
         }, {
-          total_supply: existingLock.total_supply - BigInt(event.args.amount),
+          total_supply: existingLock.total_supply - transferAmount,
+        });
+      }
+    }
+
+    // Update sender balances (unless minting)
+    if (!isMint) {
+      // Ensure sender account exists
+      const existingFromAccount = await context.db.find(account, { id: from });
+      if (!existingFromAccount) {
+        await context.db.insert(account).values({
+          id: from,
+          first_seen_at: timestamp,
+        });
+      }
+
+      // Update token-level balance
+      const fromTokenBalanceId = `${from}-${tokenRegistrationId}`;
+      const existingFromTokenBalance = await context.db.find(account_token_balance, { id: fromTokenBalanceId });
+
+      if (existingFromTokenBalance) {
+        await context.db.update(account_token_balance, {
+          id: fromTokenBalanceId
+        }, {
+          balance: existingFromTokenBalance.balance - transferAmount,
+          last_updated_at: timestamp,
+        });
+      }
+
+      // Update resource lock balance
+      const fromResourceLockBalanceId = `${from}-${resourceLockId}`;
+      const existingFromResourceLockBalance = await context.db.find(account_resource_lock_balance, { id: fromResourceLockBalanceId });
+
+      if (existingFromResourceLockBalance) {
+        await context.db.update(account_resource_lock_balance, {
+          id: fromResourceLockBalanceId
+        }, {
+          balance: existingFromResourceLockBalance.balance - transferAmount,
+          last_updated_at: timestamp,
+        });
+      }
+    }
+
+    // Update receiver balances (unless burning)
+    if (!isBurn) {
+      // Ensure receiver account exists
+      const existingToAccount = await context.db.find(account, { id: to });
+      if (!existingToAccount) {
+        await context.db.insert(account).values({
+          id: to,
+          first_seen_at: timestamp,
+        });
+      }
+
+      // Update token-level balance
+      const toTokenBalanceId = `${to}-${tokenRegistrationId}`;
+      const existingToTokenBalance = await context.db.find(account_token_balance, { id: toTokenBalanceId });
+
+      if (existingToTokenBalance) {
+        await context.db.update(account_token_balance, {
+          id: toTokenBalanceId
+        }, {
+          balance: existingToTokenBalance.balance + transferAmount,
+          last_updated_at: timestamp,
+        });
+      } else {
+        await context.db.insert(account_token_balance).values({
+          id: toTokenBalanceId,
+          account_id: to,
+          token_registration_id: tokenRegistrationId,
+          balance: transferAmount,
+          last_updated_at: timestamp,
+        });
+      }
+
+      // Update resource lock balance
+      const toResourceLockBalanceId = `${to}-${resourceLockId}`;
+      const existingToResourceLockBalance = await context.db.find(account_resource_lock_balance, { id: toResourceLockBalanceId });
+
+      if (existingToResourceLockBalance) {
+        await context.db.update(account_resource_lock_balance, {
+          id: toResourceLockBalanceId
+        }, {
+          balance: existingToResourceLockBalance.balance + transferAmount,
+          last_updated_at: timestamp,
+        });
+      } else {
+        await context.db.insert(account_resource_lock_balance).values({
+          id: toResourceLockBalanceId,
+          account_id: to,
+          resource_lock_id: resourceLockId,
+          token_registration_id: tokenRegistrationId,
+          balance: transferAmount,
+          last_updated_at: timestamp,
         });
       }
     }
