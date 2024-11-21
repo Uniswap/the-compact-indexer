@@ -58,7 +58,9 @@ export const token_registration = onchainTable(
 export const resource_lock = onchainTable(
   "resource_lock",
   (t) => ({
-    id: t.text().notNull(),
+    id: t.text().notNull(), // lock_id-chainId
+    lock_id: t.text().notNull(), // original ERC-6909 ID
+    chain_id: t.bigint().notNull(),
     token_registration_id: t.text().notNull(),
     allocator_registration_id: t.text().notNull(),
     reset_period: t.bigint().notNull(),
@@ -68,6 +70,8 @@ export const resource_lock = onchainTable(
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.id] }),
+    lockIdIdx: index().on(table.lock_id),
+    chainIdIdx: index().on(table.chain_id),
     tokenRegIdx: index().on(table.token_registration_id),
     allocRegIdx: index().on(table.allocator_registration_id),
   })

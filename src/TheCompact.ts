@@ -94,7 +94,8 @@ async function handleTransfer({ event, context }: any) {
 
   try {
     const tokenRegistrationId = `${tokenAddress}-${chainId}`;
-    const resourceLockId = id.toString();
+    const lockId = id.toString();
+    const resourceLockId = `${lockId}-${chainId}`;
     const timestamp = BigInt(event.block.timestamp);
 
     // Handle token registration and resource lock updates
@@ -121,6 +122,8 @@ async function handleTransfer({ event, context }: any) {
       const allocatorRegistrationId = `${by}-${chainId}`;
       await context.db.insert(resource_lock).values({
         id: resourceLockId,
+        lock_id: lockId,
+        chain_id: chainId,
         token_registration_id: tokenRegistrationId,
         allocator_registration_id: allocatorRegistrationId,
         reset_period: BigInt(resetPeriod),

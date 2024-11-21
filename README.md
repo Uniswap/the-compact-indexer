@@ -130,8 +130,10 @@ This query returns:
 #### Get all accounts holding a specific resource lock
 ```graphql
 query {
-	resource_lock(id: "217...") {
+  resource_lock(id: "217-1") {  # Format: lock_id-chainId
     id
+    lock_id     # original ERC-6909 ID
+    chain_id
     token {
       token_address
       chain_id
@@ -155,6 +157,6 @@ query {
 ```
 
 This query returns:
-- Lock details (ID, token, allocator, reset period, scope)
+- Lock details (ID, original lock ID, chain ID, token, allocator, reset period, scope)
 - Lock-specific total supply
 - All accounts holding a balance in the lock
