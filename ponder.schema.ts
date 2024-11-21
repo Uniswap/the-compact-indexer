@@ -35,6 +35,7 @@ export const token_registration = onchainTable(
     chain_id: t.bigint().notNull(),
     token_address: t.text().notNull(),
     first_seen_at: t.bigint().notNull(),
+    total_supply: t.bigint().notNull(), // Total supply across all resource locks
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.id] }),
@@ -52,6 +53,7 @@ export const resource_lock = onchainTable(
     reset_period: t.bigint().notNull(), // bits 252-254: one of eight fixed values
     is_multichain: t.boolean().notNull(), // bit 255: scope (true = multichain)
     minted_at: t.bigint().notNull(),
+    total_supply: t.bigint().notNull(), // Total supply for this specific resource lock
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.id] }),

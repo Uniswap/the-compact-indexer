@@ -82,9 +82,12 @@ async function handleTransfer({ event, context }: any) {
   // Convert BigInt to hex, pad to 64 chars, take last 40 chars (20 bytes/160 bits)
   const tokenAddress = "0x" + id.toString(16).padStart(64, "0").slice(-40);
 
-  // Only handle minting events (from zero address)
-  if (from !== "0x0000000000000000000000000000000000000000") {
-    return;
+  // Handle mints and burns
+  const isMint = from === "0x0000000000000000000000000000000000000000";
+  const isBurn = to === "0x0000000000000000000000000000000000000000";
+  
+  if (!isMint && !isBurn) {
+    return; // Only track mints and burns
   }
 
   // Extract reset period and scope from amount
@@ -96,29 +99,63 @@ async function handleTransfer({ event, context }: any) {
   const isMultichain = scope === Scope.Multichain;
 
   try {
-    // Create token registration record if it doesn't exist
     const tokenRegistrationId = `${tokenAddress}-${chainId}`;
-    const existingToken = await context.db.find(token_registration, { id: tokenRegistrationId });
+    const resourceLockId = id.toString();
 
-    if (!existingToken) {
-      await context.db.insert(token_registration).values({
-        id: tokenRegistrationId,
-        chain_id: chainId,
-        token_address: tokenAddress,
-        first_seen_at: BigInt(event.block.timestamp),
+    if (isMint) {
+      // Handle mint
+      const existingToken = await context.db.find(token_registration, { id: tokenRegistrationId });
+
+      if (!existingToken) {
+        // Create new token registration with initial supply
+        await context.db.insert(token_registration).values({
+          id: tokenRegistrationId,
+          chain_id: chainId,
+          token_address: tokenAddress,
+          first_seen_at: BigInt(event.block.timestamp),
+          total_supply: BigInt(event.args.amount), // Use event amount
+        });
+      } else {
+        // Increment token's total supply
+        await context.db.update(token_registration, {
+          id: tokenRegistrationId
+        }, {
+          total_supply: existingToken.total_supply + BigInt(event.args.amount),
+        });
+      }
+
+      // Create resource lock record with initial supply
+      const allocatorRegistrationId = `${by}-${chainId}`;
+      await context.db.insert(resource_lock).values({
+        id: resourceLockId,
+        token_registration_id: tokenRegistrationId,
+        allocator_registration_id: allocatorRegistrationId,
+        reset_period: BigInt(resetPeriod),
+        is_multichain: isMultichain,
+        minted_at: BigInt(event.block.timestamp),
+        total_supply: BigInt(event.args.amount), // Use event amount
       });
-    }
+    } else if (isBurn) {
+      // Handle burn
+      const existingToken = await context.db.find(token_registration, { id: tokenRegistrationId });
+      const existingLock = await context.db.find(resource_lock, { id: resourceLockId });
 
-    // Create resource lock record
-    const allocatorRegistrationId = `${by}-${chainId}`;
-    await context.db.insert(resource_lock).values({
-      id: id.toString(),
-      token_registration_id: tokenRegistrationId,
-      allocator_registration_id: allocatorRegistrationId,
-      reset_period: BigInt(resetPeriod),
-      is_multichain: isMultichain,
-      minted_at: BigInt(event.block.timestamp),
-    });
+      if (existingToken && existingLock) {
+        // Decrement token's total supply
+        await context.db.update(token_registration, {
+          id: tokenRegistrationId
+        }, {
+          total_supply: existingToken.total_supply - BigInt(event.args.amount),
+        });
+
+        // Decrement resource lock's total supply
+        await context.db.update(resource_lock, {
+          id: resourceLockId
+        }, {
+          total_supply: existingLock.total_supply - BigInt(event.args.amount),
+        });
+      }
+    }
   } catch (error) {
     console.error("Error in handleTransfer:", error);
     throw error;
