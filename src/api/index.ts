@@ -1,7 +1,10 @@
 import { ponder } from "@/generated";
 import * as schema from "../../ponder.schema";
-import { and, eq, replaceBigInts } from "@ponder/core";
+import { and, eq, graphql, replaceBigInts } from "@ponder/core";
 import { formatEther } from "viem";
+
+ponder.use("/", graphql());
+ponder.use("/graphql", graphql());
 
 ponder.get("/resource-locks/:chainId/:lockId", async (c) => {
   const chainId = BigInt(c.req.param("chainId"));

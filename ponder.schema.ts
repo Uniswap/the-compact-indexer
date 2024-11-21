@@ -1,12 +1,9 @@
 import { onchainTable, index, primaryKey } from "@ponder/core";
 
-export const account = onchainTable(
-  "account",
-  (t) => ({
-    address: t.hex().primaryKey(),
-    first_seen_at: t.bigint().notNull(),
-  })
-);
+export const account = onchainTable("account", (t) => ({
+  address: t.hex().primaryKey(),
+  first_seen_at: t.bigint().notNull(),
+}));
 
 export const allocator = onchainTable(
   "allocator",
@@ -80,7 +77,9 @@ export const account_token_balance = onchainTable(
     last_updated_at: t.bigint().notNull(),
   }),
   (table) => ({
-    pk: primaryKey({ columns: [table.account_address, table.token_address, table.chain_id] }),
+    pk: primaryKey({
+      columns: [table.account_address, table.token_address, table.chain_id],
+    }),
     accountIdx: index().on(table.account_address),
     tokenRegIdx: index().on(table.token_address, table.chain_id),
   })
@@ -97,7 +96,9 @@ export const account_resource_lock_balance = onchainTable(
     last_updated_at: t.bigint().notNull(),
   }),
   (table) => ({
-    pk: primaryKey({ columns: [table.account_address, table.resource_lock, table.chain_id] }),
+    pk: primaryKey({
+      columns: [table.account_address, table.resource_lock, table.chain_id],
+    }),
     accountIdx: index().on(table.account_address),
     resourceLockIdx: index().on(table.resource_lock, table.chain_id),
     tokenRegIdx: index().on(table.token_address, table.chain_id),
