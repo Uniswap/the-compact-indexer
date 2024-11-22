@@ -28,27 +28,27 @@ enum ForcedWithdrawalStatus {
 // Unified event handlers for all networks
 ponder.on("TheCompact:AllocatorRegistered", async ({ event, context }) => {
   const { allocator, allocatorId } = event.args;
-  const chainId = context.network.chainId;
+  const chainId = BigInt(context.network.chainId);
 
   await context.db
     .insert(schema.allocator)
     .values({
       address: allocator,
-      first_seen_at: event.block.timestamp,
+      firstSeenAt: event.block.timestamp,
     })
     .onConflictDoNothing();
 
-  await context.db.insert(schema.allocator_registration).values({
-    allocator_address: allocator,
-    chain_id: BigInt(chainId),
-    registered_at: event.block.timestamp,
+  await context.db.insert(schema.allocatorRegistration).values({
+    allocatorAddress: allocator,
+    chainId,
+    registeredAt: event.block.timestamp,
   });
 
-  await context.db.insert(schema.allocator_chain_id).values({
-    allocator_address: allocator,
-    allocator_id: BigInt(allocatorId),
-    chain_id: BigInt(chainId),
-    first_seen_at: event.block.timestamp,
+  await context.db.insert(schema.allocatorChainId).values({
+    allocatorAddress: allocator,
+    allocatorId: BigInt(allocatorId),
+    chainId: BigInt(chainId),
+    firstSeenAt: event.block.timestamp,
   });
 });
 
@@ -75,56 +75,56 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
 
   if (isMint) {
     await context.db
-      .insert(schema.deposited_token)
+      .insert(schema.depositedToken)
       .values({
-        chain_id: chainId,
-        token_address: tokenAddress,
-        first_seen_at: event.block.timestamp,
-        total_supply: transferAmount,
+        chainId,
+        tokenAddress,
+        firstSeenAt: event.block.timestamp,
+        totalSupply: transferAmount,
       })
       .onConflictDoUpdate((row) => ({
-        total_supply: row.total_supply + transferAmount,
+        totalSupply: row.totalSupply + transferAmount,
       }));
 
     await context.db
-      .insert(schema.resource_lock)
+      .insert(schema.resourceLock)
       .values({
-        lock_id: id,
-        chain_id: chainId,
-        token_address: tokenAddress,
-        allocator_address: by,
-        reset_period: BigInt(resetPeriod),
-        is_multichain: isMultichain,
-        minted_at: event.block.timestamp,
-        total_supply: transferAmount,
+        lockId: id,
+        chainId,
+        tokenAddress,
+        allocatorAddress: by,
+        resetPeriod: BigInt(resetPeriod),
+        isMultichain: isMultichain,
+        mintedAt: event.block.timestamp,
+        totalSupply: transferAmount,
       })
       .onConflictDoUpdate((row) => ({
-        total_supply: row.total_supply + transferAmount,
+        totalSupply: row.totalSupply + transferAmount,
       }));
   } else if (isBurn) {
-    const existingToken = await context.db.find(schema.deposited_token, {
-      token_address: tokenAddress,
-      chain_id: chainId,
+    const existingToken = await context.db.find(schema.depositedToken, {
+      tokenAddress,
+      chainId,
     });
-    const existingLock = await context.db.find(schema.resource_lock, {
-      lock_id: id,
-      chain_id: chainId,
+    const existingLock = await context.db.find(schema.resourceLock, {
+      lockId: id,
+      chainId,
     });
 
     if (existingToken && existingLock) {
       await context.db
-        .update(schema.deposited_token, {
-          token_address: tokenAddress,
-          chain_id: chainId,
+        .update(schema.depositedToken, {
+          tokenAddress,
+          chainId,
         })
         .set({
-          total_supply: existingToken.total_supply - transferAmount,
+          totalSupply: existingToken.totalSupply - transferAmount,
         });
 
       await context.db
-        .update(schema.resource_lock, { lock_id: id, chain_id: chainId })
+        .update(schema.resourceLock, { lockId: id, chainId: chainId })
         .set({
-          total_supply: existingLock.total_supply - transferAmount,
+          totalSupply: existingLock.totalSupply - transferAmount,
         });
     }
   }
@@ -136,47 +136,47 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
       .insert(schema.account)
       .values({
         address: from,
-        first_seen_at: event.block.timestamp,
+        firstSeenAt: event.block.timestamp,
       })
       .onConflictDoNothing();
 
     // Update token-level balance
     const existingFromTokenBalance = await context.db.find(
-      schema.account_token_balance,
-      { account_address: from, token_address: tokenAddress, chain_id: chainId }
+      schema.accountTokenBalance,
+      { accountAddress: from, tokenAddress, chainId }
     );
 
-    // Note: is it an invariant that `existingFromTokenBalance` and `account_resource_lock_balance` are always defined?
+    // Note: is it an invariant that `existingFromTokenBalance` and `existingFromResourceLockBalance` are always defined?
 
     if (existingFromTokenBalance) {
       await context.db
-        .update(schema.account_token_balance, {
-          account_address: from,
-          token_address: tokenAddress,
-          chain_id: chainId,
+        .update(schema.accountTokenBalance, {
+          accountAddress: from,
+          tokenAddress,
+          chainId,
         })
         .set({
           balance: existingFromTokenBalance.balance - transferAmount,
-          last_updated_at: event.block.timestamp,
+          lastUpdatedAt: event.block.timestamp,
         });
     }
 
     // Update resource lock balance
     const existingFromResourceLockBalance = await context.db.find(
-      schema.account_resource_lock_balance,
-      { account_address: from, resource_lock: id, chain_id: chainId }
+      schema.accountResourceLockBalance,
+      { accountAddress: from, resourceLock: id, chainId }
     );
 
     if (existingFromResourceLockBalance) {
       await context.db
-        .update(schema.account_resource_lock_balance, {
-          account_address: from,
-          resource_lock: id,
-          chain_id: chainId,
+        .update(schema.accountResourceLockBalance, {
+          accountAddress: from,
+          resourceLock: id,
+          chainId,
         })
         .set({
           balance: existingFromResourceLockBalance.balance - transferAmount,
-          last_updated_at: event.block.timestamp,
+          lastUpdatedAt: event.block.timestamp,
         });
     }
   }
@@ -188,40 +188,40 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
       .insert(schema.account)
       .values({
         address: to,
-        first_seen_at: event.block.timestamp,
+        firstSeenAt: event.block.timestamp,
       })
       .onConflictDoNothing();
 
     // Update token-level balance
 
     await context.db
-      .insert(schema.account_token_balance)
+      .insert(schema.accountTokenBalance)
       .values({
-        account_address: to,
-        token_address: tokenAddress,
-        chain_id: chainId,
+        accountAddress: to,
+        tokenAddress,
+        chainId,
         balance: transferAmount,
-        last_updated_at: event.block.timestamp,
+        lastUpdatedAt: event.block.timestamp,
       })
       .onConflictDoUpdate((row) => ({
         balance: row.balance + transferAmount,
-        last_updated_at: event.block.timestamp,
+        lastUpdatedAt: event.block.timestamp,
       }));
 
     // Update resource lock balance
     await context.db
-      .insert(schema.account_resource_lock_balance)
+      .insert(schema.accountResourceLockBalance)
       .values({
-        account_address: to,
-        resource_lock: id,
-        chain_id: chainId,
-        token_address: tokenAddress,
+        accountAddress: to,
+        resourceLock: id,
+        chainId,
+        tokenAddress,
         balance: transferAmount,
-        last_updated_at: event.block.timestamp,
+        lastUpdatedAt: event.block.timestamp,
       })
       .onConflictDoUpdate((row) => ({
         balance: row.balance + transferAmount,
-        last_updated_at: event.block.timestamp,
+        lastUpdatedAt: event.block.timestamp,
       }));
   }
 });
@@ -240,11 +240,11 @@ ponder.on(
 
     // Get the balance record
     const existingBalance = await context.db.find(
-      schema.account_resource_lock_balance,
+      schema.accountResourceLockBalance,
       {
-        account_address: accountAddress,
-        resource_lock: id,
-        chain_id: chainId,
+        accountAddress,
+        resourceLock: id,
+        chainId,
       }
     );
 
@@ -258,29 +258,29 @@ ponder.on(
             : ForcedWithdrawalStatus.Enabled;
 
         await context.db
-          .update(schema.account_resource_lock_balance, {
-            account_address: accountAddress,
-            resource_lock: id,
-            chain_id: chainId,
+            .update(schema.accountResourceLockBalance, {
+            accountAddress,
+            resourceLock: id,
+            chainId,
           })
           .set({
-            withdrawal_status: status,
+            withdrawalStatus: status,
             // Use 0n instead of null for "no withdrawal time"
-            withdrawable_at:
+            withdrawableAt:
               withdrawableAtBigInt === 0n ? 0n : withdrawableAtBigInt,
-            last_updated_at: timestamp,
+            lastUpdatedAt: timestamp,
           });
       } else {
         await context.db
-          .update(schema.account_resource_lock_balance, {
-            account_address: accountAddress,
-            resource_lock: id,
-            chain_id: chainId,
+          .update(schema.accountResourceLockBalance, {
+            accountAddress,
+            resourceLock: id,
+            chainId,
           })
           .set({
-            withdrawal_status: ForcedWithdrawalStatus.Disabled,
-            withdrawable_at: 0n, // Use 0n for disabled state
-            last_updated_at: timestamp,
+            withdrawalStatus: ForcedWithdrawalStatus.Disabled,
+            withdrawableAt: 0n, // Use 0n for disabled state
+            lastUpdatedAt: timestamp,
           });
       }
     }
@@ -289,14 +289,14 @@ ponder.on(
 
 ponder.on("TheCompact:Claim", async ({ event, context }) => {
   const { sponsor, allocator, arbiter, claimHash } = event.args;
-  const chainId = context.network.chainId;
+  const chainId = BigInt(context.network.chainId);
 
   // Ensure sponsor account exists
   await context.db
     .insert(schema.account)
     .values({
       address: sponsor,
-      first_seen_at: event.block.timestamp,
+      firstSeenAt: event.block.timestamp,
     })
     .onConflictDoNothing();
 
@@ -305,45 +305,45 @@ ponder.on("TheCompact:Claim", async ({ event, context }) => {
     .insert(schema.account)
     .values({
       address: allocator,
-      first_seen_at: event.block.timestamp,
+      firstSeenAt: event.block.timestamp,
     })
     .onConflictDoNothing();
 
   // Create claim record
 
-  // NOTE: Do we need allocator_id?
+  // NOTE: Do we need allocatorId?
   await context.db.insert(schema.claim).values({
-    claim_hash: claimHash,
-    chain_id: BigInt(chainId),
+    claimHash,
+    chainId,
     sponsor,
     allocator,
     arbiter,
     timestamp: event.block.timestamp,
-    block_number: event.block.number,
+    blockNumber: event.block.number,
   });
 });
 
 // Other events that we'll implement later
 ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
   const { sponsor, claimHash } = event.args;
-  const chainId = context.network.chainId;
+  const chainId = BigInt(context.network.chainId);
 
   // Ensure sponsor account exists
   await context.db
     .insert(schema.account)
     .values({
       address: sponsor,
-      first_seen_at: event.block.timestamp,
+      firstSeenAt: event.block.timestamp,
     })
     .onConflictDoNothing();
 
   // Create registered compact record
-  await context.db.insert(schema.registered_compact).values({
-    claim_hash: claimHash,
-    chain_id: BigInt(chainId),
+  await context.db.insert(schema.registeredCompact).values({
+    claimHash: claimHash,
+    chainId,
     sponsor,
-    registered_at: event.block.timestamp,
-    block_number: event.block.number,
+    registeredAt: event.block.timestamp,
+    blockNumber: event.block.number,
   });
 });
 
