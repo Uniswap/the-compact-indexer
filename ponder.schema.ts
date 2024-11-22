@@ -158,6 +158,19 @@ export const registered_compact = onchainTable(
   })
 );
 
+export const accountRelations = relations(account, ({ many }) => ({
+  claims: many(claim),
+  registered_compacts: many(registered_compact),
+  token_balances: many(account_token_balance),
+  resource_locks: many(account_resource_lock_balance),
+}));
+
+export const allocatorRelations = relations(allocator, ({ many }) => ({
+  supported_chains: many(allocator_chain_id),
+  registrations: many(allocator_registration),
+  claims: many(claim),
+}));
+
 export const allocatorChainIdRelations = relations(allocator_chain_id, ({ one }) => ({
   parent: one(allocator, {
     fields: [allocator_chain_id.allocator_address],
@@ -180,21 +193,6 @@ export const claimRelations = relations(claim, ({ one }) => ({
   }),
 }));
 
-export const allocatorRelations = relations(allocator, ({ many }) => ({
-  registrations: many(allocator_registration, {
-    fields: [allocator.address],
-    references: [allocator_registration.allocator_address],
-  }),
-  supported_chains: many(allocator_chain_id, {
-    fields: [allocator.address],
-    references: [allocator_chain_id.allocator_address],
-  }),
-  claims: many(claim, {
-    fields: [allocator.address],
-    references: [claim.allocator],
-  }),
-}));
-
 export const allocatorRegistrationRelations = relations(allocator_registration, ({ one }) => ({
   allocator: one(allocator, {
     fields: [allocator_registration.allocator_address],
@@ -202,34 +200,9 @@ export const allocatorRegistrationRelations = relations(allocator_registration, 
   }),
 }));
 
-export const accountRelations = relations(account, ({ many }) => ({
-  claims: many(claim, {
-    fields: [account.address],
-    references: [claim.sponsor],
-  }),
-  registered_compacts: many(registered_compact, {
-    fields: [account.address],
-    references: [registered_compact.sponsor],
-  }),
-  token_balances: many(account_token_balance, {
-    fields: [account.address],
-    references: [account_token_balance.account_address],
-  }),
-  resource_locks: many(account_resource_lock_balance, {
-    fields: [account.address],
-    references: [account_resource_lock_balance.account_address],
-  }),
-}));
-
 export const depositedTokenRelations = relations(deposited_token, ({ many }) => ({
-  account_balances: many(account_token_balance, {
-    fields: [deposited_token.token_address, deposited_token.chain_id],
-    references: [account_token_balance.token_address, account_token_balance.chain_id],
-  }),
-  resource_locks: many(resource_lock, {
-    fields: [deposited_token.token_address, deposited_token.chain_id],
-    references: [resource_lock.token_address, resource_lock.chain_id],
-  }),
+  account_balances: many(account_token_balance),
+  resource_locks: many(resource_lock),
 }));
 
 export const resourceLockRelations = relations(resource_lock, ({ one, many }) => ({
@@ -241,10 +214,7 @@ export const resourceLockRelations = relations(resource_lock, ({ one, many }) =>
     fields: [resource_lock.allocator_address, resource_lock.chain_id],
     references: [allocator_registration.allocator_address, allocator_registration.chain_id],
   }),
-  account_balances: many(account_resource_lock_balance, {
-    fields: [resource_lock.lock_id, resource_lock.chain_id],
-    references: [account_resource_lock_balance.resource_lock, account_resource_lock_balance.chain_id],
-  }),
+  account_balances: many(account_resource_lock_balance),
 }));
 
 export const accountTokenBalanceRelations = relations(account_token_balance, ({ one, many }) => ({
@@ -256,10 +226,7 @@ export const accountTokenBalanceRelations = relations(account_token_balance, ({ 
     fields: [account_token_balance.token_address, account_token_balance.chain_id],
     references: [deposited_token.token_address, deposited_token.chain_id],
   }),
-  resource_locks: many(account_resource_lock_balance, {
-    fields: [account_token_balance.account_address, account_token_balance.token_address, account_token_balance.chain_id],
-    references: [account_resource_lock_balance.account_address, account_resource_lock_balance.token_address, account_resource_lock_balance.chain_id],
-  }),
+  resource_locks: many(account_resource_lock_balance),
 }));
 
 export const accountResourceLockBalanceRelations = relations(account_resource_lock_balance, ({ one }) => ({
