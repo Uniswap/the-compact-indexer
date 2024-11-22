@@ -98,8 +98,9 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         minted_at: event.block.timestamp,
         total_supply: transferAmount,
       })
-      // TODO: Is this correct?
-      .onConflictDoNothing();
+      .onConflictDoUpdate((row) => ({
+        total_supply: row.total_supply + transferAmount,
+      }));
   } else if (isBurn) {
     const existingToken = await context.db.find(schema.deposited_token, {
       token_address: tokenAddress,
