@@ -1,4 +1,4 @@
-import { onchainTable, index, primaryKey } from "@ponder/core";
+import { onchainTable, index, primaryKey, relations } from "@ponder/core";
 
 export const account = onchainTable("account", (t) => ({
   address: t.hex().primaryKey(),
@@ -158,72 +158,133 @@ export const registered_compact = onchainTable(
   })
 );
 
-// export const accountRelations = relations(account, ({ many }) => ({
-//   token_balances: many(account_token_balance, {
-//     fields: [account.address],
-//     references: [account_token_balance.account_address],
-//   }),
-// }));
+export const allocatorChainIdRelations = relations(allocator_chain_id, ({ one }) => ({
+  parent: one(allocator, {
+    fields: [allocator_chain_id.allocator_address],
+    references: [allocator.address],
+  }),
+}));
 
-// export const allocatorRegistrationRelations = relations(allocator_registration, ({ one }) => ({
-//   allocator: one(allocator, {
-//     fields: [allocator_registration.allocator_address],
-//     references: [allocator.allocator_id],
-//   }),
-// }));
+export const claimRelations = relations(claim, ({ one }) => ({
+  sponsor: one(account, {
+    fields: [claim.sponsor],
+    references: [account.address],
+  }),
+  allocator: one(allocator, {
+    fields: [claim.allocator],
+    references: [allocator.address],
+  }),
+  allocator_chain_id: one(allocator_chain_id, {
+    fields: [claim.allocator, claim.chain_id],
+    references: [allocator_chain_id.allocator_address, allocator_chain_id.chain_id],
+  }),
+}));
 
-// export const depositedTokenRelations = relations(deposited_token, ({ many }) => ({
-//   account_balances: many(account_token_balance, {
-//     fields: [deposited_token.id],
-//     references: [account_token_balance.token_registration_id],
-//   }),
-//   resource_locks: many(resource_lock, {
-//     fields: [deposited_token.id],
-//     references: [resource_lock.token_registration_id],
-//   }),
-// }));
+export const allocatorRelations = relations(allocator, ({ many }) => ({
+  registrations: many(allocator_registration, {
+    fields: [allocator.address],
+    references: [allocator_registration.allocator_address],
+  }),
+  supported_chains: many(allocator_chain_id, {
+    fields: [allocator.address],
+    references: [allocator_chain_id.allocator_address],
+  }),
+  claims: many(claim, {
+    fields: [allocator.address],
+    references: [claim.allocator],
+  }),
+}));
 
-// export const resourceLockRelations = relations(resource_lock, ({ one, many }) => ({
-//   token: one(deposited_token, {
-//     fields: [resource_lock.token_registration_id],
-//     references: [deposited_token.id],
-//   }),
-//   allocator: one(allocator_registration, {
-//     fields: [resource_lock.allocator_registration_id],
-//     references: [allocator_registration.id],
-//   }),
-//   account_balances: many(account_resource_lock_balance, {
-//     fields: [resource_lock.id],
-//     references: [account_resource_lock_balance.resource_lock_id],
-//   }),
-// }));
+export const allocatorRegistrationRelations = relations(allocator_registration, ({ one }) => ({
+  allocator: one(allocator, {
+    fields: [allocator_registration.allocator_address],
+    references: [allocator.address],
+  }),
+}));
 
-// export const accountTokenBalanceRelations = relations(account_token_balance, ({ one, many }) => ({
-//   account: one(account, {
-//     fields: [account_token_balance.account_id],
-//     references: [account.id],
-//   }),
-//   token: one(deposited_token, {
-//     fields: [account_token_balance.token_registration_id],
-//     references: [deposited_token.id],
-//   }),
-//   resource_locks: many(account_resource_lock_balance, {
-//     fields: [account_token_balance.account_id, account_token_balance.token_registration_id],
-//     references: [account_resource_lock_balance.account_id, account_resource_lock_balance.token_registration_id],
-//   }),
-// }));
+export const accountRelations = relations(account, ({ many }) => ({
+  claims: many(claim, {
+    fields: [account.address],
+    references: [claim.sponsor],
+  }),
+  registered_compacts: many(registered_compact, {
+    fields: [account.address],
+    references: [registered_compact.sponsor],
+  }),
+  token_balances: many(account_token_balance, {
+    fields: [account.address],
+    references: [account_token_balance.account_address],
+  }),
+  resource_locks: many(account_resource_lock_balance, {
+    fields: [account.address],
+    references: [account_resource_lock_balance.account_address],
+  }),
+}));
 
-// export const accountResourceLockBalanceRelations = relations(account_resource_lock_balance, ({ one }) => ({
-//   account: one(account, {
-//     fields: [account_resource_lock_balance.account_id],
-//     references: [account.id],
-//   }),
-//   resourceLock: one(resource_lock, {
-//     fields: [account_resource_lock_balance.resource_lock_id],
-//     references: [resource_lock.id],
-//   }),
-//   token_balance: one(account_token_balance, {
-//     fields: [account_resource_lock_balance.account_id, account_resource_lock_balance.token_registration_id],
-//     references: [account_token_balance.account_id, account_token_balance.token_registration_id],
-//   }),
-// }));
+export const depositedTokenRelations = relations(deposited_token, ({ many }) => ({
+  account_balances: many(account_token_balance, {
+    fields: [deposited_token.token_address, deposited_token.chain_id],
+    references: [account_token_balance.token_address, account_token_balance.chain_id],
+  }),
+  resource_locks: many(resource_lock, {
+    fields: [deposited_token.token_address, deposited_token.chain_id],
+    references: [resource_lock.token_address, resource_lock.chain_id],
+  }),
+}));
+
+export const resourceLockRelations = relations(resource_lock, ({ one, many }) => ({
+  token: one(deposited_token, {
+    fields: [resource_lock.token_address, resource_lock.chain_id],
+    references: [deposited_token.token_address, deposited_token.chain_id],
+  }),
+  allocator: one(allocator_registration, {
+    fields: [resource_lock.allocator_address, resource_lock.chain_id],
+    references: [allocator_registration.allocator_address, allocator_registration.chain_id],
+  }),
+  account_balances: many(account_resource_lock_balance, {
+    fields: [resource_lock.lock_id, resource_lock.chain_id],
+    references: [account_resource_lock_balance.resource_lock, account_resource_lock_balance.chain_id],
+  }),
+}));
+
+export const accountTokenBalanceRelations = relations(account_token_balance, ({ one, many }) => ({
+  account: one(account, {
+    fields: [account_token_balance.account_address],
+    references: [account.address],
+  }),
+  token: one(deposited_token, {
+    fields: [account_token_balance.token_address, account_token_balance.chain_id],
+    references: [deposited_token.token_address, deposited_token.chain_id],
+  }),
+  resource_locks: many(account_resource_lock_balance, {
+    fields: [account_token_balance.account_address, account_token_balance.token_address, account_token_balance.chain_id],
+    references: [account_resource_lock_balance.account_address, account_resource_lock_balance.token_address, account_resource_lock_balance.chain_id],
+  }),
+}));
+
+export const accountResourceLockBalanceRelations = relations(account_resource_lock_balance, ({ one }) => ({
+  account: one(account, {
+    fields: [account_resource_lock_balance.account_address],
+    references: [account.address],
+  }),
+  resourceLock: one(resource_lock, {
+    fields: [account_resource_lock_balance.resource_lock, account_resource_lock_balance.chain_id],
+    references: [resource_lock.lock_id, resource_lock.chain_id],
+  }),
+  token_balance: one(account_token_balance, {
+    fields: [account_resource_lock_balance.account_address, account_resource_lock_balance.token_address, account_resource_lock_balance.chain_id],
+    references: [account_token_balance.account_address, account_token_balance.token_address, account_token_balance.chain_id],
+  }),
+}));
+
+export const registeredCompactRelations = relations(registered_compact, ({ one }) => ({
+  sponsor: one(account, {
+    fields: [registered_compact.sponsor],
+    references: [account.address],
+  }),
+  claim: one(claim, {
+    fields: [registered_compact.claim_hash, registered_compact.chain_id],
+    references: [claim.claim_hash, claim.chain_id],
+  }),
+}));
+
