@@ -131,42 +131,52 @@ async function handleTransfer({ event, context }: any) {
           total_supply: transferAmount,
         });
       } else {
-        await context.db.update(deposited_token, {
-          id: tokenRegistrationId
-        }, {
-          total_supply: existingToken.total_supply + transferAmount,
-        });
+        await context.db
+          .update(deposited_token, { id: tokenRegistrationId })
+          .set((row) => ({
+            total_supply: row.total_supply + transferAmount,
+          }));
       }
 
-      // Create resource lock record
+      // Create resource lock record if one doesn't exist
       const allocatorRegistrationId = `${byAddress}-${chainId}`;
-      await context.db.insert(resource_lock).values({
-        id: resourceLockId,
-        lock_id: lockId,
-        chain_id: chainId,
-        token_registration_id: tokenRegistrationId,
-        allocator_registration_id: allocatorRegistrationId,
-        reset_period: BigInt(resetPeriod),
-        is_multichain: isMultichain,
-        minted_at: timestamp,
-        total_supply: transferAmount,
-      });
+      const existingResourceLock = await context.db.find(resource_lock, { id: resourceLockId });
+
+      if (!existingResourceLock) {
+        await context.db.insert(resource_lock).values({
+          id: resourceLockId,
+          lock_id: lockId,
+          chain_id: chainId,
+          token_registration_id: tokenRegistrationId,
+          allocator_registration_id: allocatorRegistrationId,
+          reset_period: BigInt(resetPeriod),
+          is_multichain: isMultichain,
+          minted_at: timestamp,
+          total_supply: transferAmount,
+        });
+      } else {
+        await context.db
+          .update(resource_lock, { id: resourceLockId })
+          .set((row) => ({
+            total_supply: row.total_supply + transferAmount,
+          }));
+      }
     } else if (isBurn) {
       const existingToken = await context.db.find(deposited_token, { id: tokenRegistrationId });
       const existingLock = await context.db.find(resource_lock, { id: resourceLockId });
 
       if (existingToken && existingLock) {
-        await context.db.update(deposited_token, {
-          id: tokenRegistrationId
-        }, {
-          total_supply: existingToken.total_supply - transferAmount,
-        });
+        await context.db
+          .update(deposited_token, { id: tokenRegistrationId })
+          .set((row) => ({
+            total_supply: row.total_supply - transferAmount,
+          }));
 
-        await context.db.update(resource_lock, {
-          id: resourceLockId
-        }, {
-          total_supply: existingLock.total_supply - transferAmount,
-        });
+        await context.db
+          .update(resource_lock, { id: resourceLockId })
+          .set((row) => ({
+            total_supply: row.total_supply - transferAmount,
+          }));
       }
     }
 
@@ -186,12 +196,12 @@ async function handleTransfer({ event, context }: any) {
       const existingFromTokenBalance = await context.db.find(account_token_balance, { id: fromTokenBalanceId });
 
       if (existingFromTokenBalance) {
-        await context.db.update(account_token_balance, {
-          id: fromTokenBalanceId
-        }, {
-          balance: existingFromTokenBalance.balance - transferAmount,
-          last_updated_at: timestamp,
-        });
+        await context.db
+          .update(account_token_balance, { id: fromTokenBalanceId })
+          .set((row) => ({
+            balance: row.balance - transferAmount,
+            last_updated_at: timestamp,
+          }));
       }
 
       // Update resource lock balance
@@ -199,12 +209,12 @@ async function handleTransfer({ event, context }: any) {
       const existingFromResourceLockBalance = await context.db.find(account_resource_lock_balance, { id: fromResourceLockBalanceId });
 
       if (existingFromResourceLockBalance) {
-        await context.db.update(account_resource_lock_balance, {
-          id: fromResourceLockBalanceId
-        }, {
-          balance: existingFromResourceLockBalance.balance - transferAmount,
-          last_updated_at: timestamp,
-        });
+        await context.db
+          .update(account_resource_lock_balance, { id: fromResourceLockBalanceId })
+          .set((row) => ({
+            balance: row.balance - transferAmount,
+            last_updated_at: timestamp,
+          }));
       }
     }
 
@@ -224,12 +234,12 @@ async function handleTransfer({ event, context }: any) {
       const existingToTokenBalance = await context.db.find(account_token_balance, { id: toTokenBalanceId });
 
       if (existingToTokenBalance) {
-        await context.db.update(account_token_balance, {
-          id: toTokenBalanceId
-        }, {
-          balance: existingToTokenBalance.balance + transferAmount,
-          last_updated_at: timestamp,
-        });
+        await context.db
+          .update(account_token_balance, { id: toTokenBalanceId })
+          .set((row) => ({
+            balance: row.balance + transferAmount,
+            last_updated_at: timestamp,
+          }));
       } else {
         await context.db.insert(account_token_balance).values({
           id: toTokenBalanceId,
@@ -245,12 +255,12 @@ async function handleTransfer({ event, context }: any) {
       const existingToResourceLockBalance = await context.db.find(account_resource_lock_balance, { id: toResourceLockBalanceId });
 
       if (existingToResourceLockBalance) {
-        await context.db.update(account_resource_lock_balance, {
-          id: toResourceLockBalanceId
-        }, {
-          balance: existingToResourceLockBalance.balance + transferAmount,
-          last_updated_at: timestamp,
-        });
+        await context.db
+          .update(account_resource_lock_balance, { id: toResourceLockBalanceId })
+          .set((row) => ({
+            balance: row.balance + transferAmount,
+            last_updated_at: timestamp,
+          }));
       } else {
         await context.db.insert(account_resource_lock_balance).values({
           id: toResourceLockBalanceId,
@@ -292,23 +302,23 @@ async function handleForcedWithdrawalStatusUpdated({ event, context }: any) {
           : ForcedWithdrawalStatus.Enabled;
 
         // Update balance record with new withdrawal status
-        await context.db.update(account_resource_lock_balance, {
-          id: balanceId
-        }, {
-          withdrawal_status: status,
-          // Use 0n instead of null for "no withdrawal time"
-          withdrawable_at: withdrawableAtBigInt === 0n ? 0n : withdrawableAtBigInt,
-          last_updated_at: timestamp,
-        });
+        await context.db
+          .update(account_resource_lock_balance, { id: balanceId })
+          .set((row) => ({
+            withdrawal_status: status,
+            // Use 0n instead of null for "no withdrawal time"
+            withdrawable_at: withdrawableAtBigInt === 0n ? 0n : withdrawableAtBigInt,
+            last_updated_at: timestamp,
+          }));
       } else {
         // Deactivating - set status to Disabled
-        await context.db.update(account_resource_lock_balance, {
-          id: balanceId
-        }, {
-          withdrawal_status: ForcedWithdrawalStatus.Disabled,
-          withdrawable_at: 0n,  // Use 0n for disabled state
-          last_updated_at: timestamp,
-        });
+        await context.db
+          .update(account_resource_lock_balance, { id: balanceId })
+          .set((row) => ({
+            withdrawal_status: ForcedWithdrawalStatus.Disabled,
+            withdrawable_at: 0n,  // Use 0n for disabled state
+            last_updated_at: timestamp,
+          }));
       }
     }
     // If no balance record exists, we don't need to do anything
