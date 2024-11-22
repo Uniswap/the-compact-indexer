@@ -60,22 +60,22 @@ Once the indexer is running, you can query the GraphQL API at `http://localhost:
 query {
   allocators {
     items {
-      address: id
-      chains: supported_chains {
+      address
+      chains: supportedChains {
         items {
-          allocator_id
-          chain_id
+          allocatorId
+          chainId
         }
       }
       claims(orderBy: "timestamp", orderDirection: "DESC") {
         items {
-          chain_id
-          claim_hash
+          chainId
+          claimHash
           sponsor {
-            address: id
+            address
           }
           arbiter
-          block_number
+          blockNumber
           timestamp
         }
       }
@@ -95,25 +95,25 @@ This query returns:
 query {
   accounts {
     items {
-      depositor: id  # account address
-      token_balances(orderBy: "balance", orderDirection: "DESC") {
+      depositor: address  # account address
+      tokenBalances(orderBy: "balance", orderDirection: "DESC") {
         items {
           token {
-            chain_id
-            token_address
-            total_supply
+            chainId
+            tokenAddress
+            totalSupply
           }
           aggregate_balance: balance  # total balance for this token
-          resource_locks(orderBy: "balance", orderDirection: "DESC") {
+          resourceLocks(orderBy: "balance", orderDirection: "DESC") {
             items {
               resourceLock {
-                id
+                lockId
                 allocator {
-                  account: allocator_address
+                  account: allocatorAddress
                 }
-                reset_period
-                is_multichain
-                total_supply
+                resetPeriod
+                isMultichain
+                totalSupply
               }
               balance  # balance for this specific resource lock
             }
@@ -122,13 +122,13 @@ query {
       }
       claims(orderBy: "timestamp", orderDirection: "DESC") {
         items {
-          chain_id
-          claim_hash
+          chainId
+          claimHash
           allocator {
-            address: id
+            address
           }
           arbiter
-          block_number
+          blockNumber
           timestamp
         }
       }
@@ -152,26 +152,26 @@ This query returns:
 #### Get all accounts holding a specific resource lock
 ```graphql
 query {
-  resource_lock(id: "2178...7024-1") {  # Format: lock_id-chainId
-    lock_id
-    chain_id
+  resourceLock(lockId: "2178...7024", chainId: "1") {  # Format: lockId-chainId
+    lockId
+    chainId
     token {
-      address: token_address
+      address: tokenAddress
     }
     allocator {
-      address: allocator_address
+      address: allocatorAddress
     }
-    account_balances {
+    accountBalances {
       totalCount
       items {
         account {
-          id
+          address
         }
         balance
       }
     }
-    reset_period
-    is_multichain
+    resetPeriod
+    isMultichain
   }
 }
 ```
@@ -187,17 +187,17 @@ This query returns:
 query {
   accounts {
     items {
-      id
-      resource_locks {
+      address
+      resourceLocks {
         items {
           resourceLock {
-            lock_id
-            chain_id
+            lockId
+            chainId
             token {
-              address: token_address
+              address: tokenAddress
             }
-            withdrawal_status
-            withdrawable_at
+            withdrawalStatus
+            withdrawableAt
           }
           balance  # Account's balance for this resource lock
         }
@@ -218,18 +218,18 @@ This query demonstrates:
 
 ```graphql
 query {
-  registered_compacts {
+  registeredCompacts {
     items {
-      claim_hash
-      chain_id
+      claimHash
+      chainId
       sponsor {
-        address: id
+        address
       }
-      registered_at
-      block_number
+      registeredAt
+      blockNumber
       claim {  # Will be null if claim hasn't been processed yet
         allocator {
-          address: id
+          address
         }
         arbiter
         timestamp
@@ -250,15 +250,15 @@ This query returns:
 
 ```graphql
 query {
-  account(id: "0x1234...") {
-    registered_compacts(orderBy: "registered_at", orderDirection: "DESC") {
+  account(address: "0x1234...") {
+    registeredCompacts(orderBy: "registeredAt", orderDirection: "DESC") {
       items {
-        claim_hash
-        chain_id
-        registered_at
+        claimHash
+        chainId
+        registeredAt
         claim {  # Will be null if claim hasn't been processed yet
           allocator {
-            address: id
+            address
           }
           arbiter
           timestamp

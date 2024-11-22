@@ -12,23 +12,23 @@ ponder.get("/resource-locks/:chainId/:lockId", async (c) => {
 
   const result = await c.db
     .select()
-    .from(schema.resource_lock)
+    .from(schema.resourceLock)
     .where(
       and(
-        eq(schema.resource_lock.chain_id, chainId),
-        eq(schema.resource_lock.lock_id, lockId)
+        eq(schema.resourceLock.chainId, chainId),
+        eq(schema.resourceLock.lockId, lockId)
       )
     )
     .innerJoin(
       schema.account_resource_lock_balance,
       and(
         eq(
-          schema.resource_lock.lock_id,
-          schema.account_resource_lock_balance.resource_lock
+          schema.resourceLock.lockId,
+          schema.account_resource_lock_balance.resourceLock
         ),
         eq(
-          schema.resource_lock.chain_id,
-          schema.account_resource_lock_balance.chain_id
+          schema.resourceLock.chainId,
+          schema.account_resource_lock_balance.chainId
         )
       )
     );
