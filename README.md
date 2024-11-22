@@ -44,8 +44,11 @@ Next, install dependencies and run the indexer:
 # Install dependencies
 pnpm install
 
+# Run codegen
+pnpm ponder codegen
+
 # Start the indexer
-pnpm ponder dev
+pnpm dev
 ```
 
 ## Usage
@@ -56,17 +59,24 @@ Once the indexer is running, you can query the GraphQL API at `http://localhost:
 ```graphql
 query {
   allocators {
-    totalCount
     items {
-      id
-      allocator_id
-      first_seen_at
-      registrations {
-        totalCount
+      address: id
+      chains: supported_chains {
         items {
-          id
+          allocator_id
           chain_id
-          registered_at
+        }
+      }
+      claims(orderBy: "timestamp", orderDirection: "DESC") {
+        items {
+          chain_id
+          claim_hash
+          sponsor {
+            address: id
+          }
+          arbiter
+          block_number
+          timestamp
         }
       }
     }
@@ -76,9 +86,8 @@ query {
 
 This query returns:
 - All registered allocators
-- Their unique IDs and first seen timestamps
-- All networks where each allocator is registered
-- Registration timestamps for each network
+- Chains where each allocator is registered and their allocator ID on each chain
+- Processed claims mediated by each allocator
 
 #### Get account balances across tokens and their respective resource locks
 
@@ -87,7 +96,7 @@ query {
   accounts {
     items {
       depositor: id  # account address
-      token_balances {
+      token_balances(orderBy: "balance", orderDirection: "DESC") {
         items {
           token {
             chain_id
@@ -95,7 +104,7 @@ query {
             total_supply
           }
           aggregate_balance: balance  # total balance for this token
-          resource_locks {
+          resource_locks(orderBy: "balance", orderDirection: "DESC") {
             items {
               resourceLock {
                 id
@@ -109,6 +118,18 @@ query {
               balance  # balance for this specific resource lock
             }
           }
+        }
+      }
+      claims(orderBy: "timestamp", orderDirection: "DESC") {
+        items {
+          chain_id
+          claim_hash
+          allocator {
+            address: id
+          }
+          arbiter
+          block_number
+          timestamp
         }
       }
     }
@@ -126,30 +147,92 @@ This query returns:
       - Lock details (ID, allocator, reset period, scope)
       - Lock-specific balance
       - Lock-specific total supply
+  - Processed claims sponsored by the account
 
 #### Get all accounts holding a specific resource lock
 ```graphql
 query {
-  resource_lock(id: "217-1") {  # Format: lock_id-chainId
-    id
-    lock_id     # original ERC-6909 ID
+  resource_lock(id: "2178...7024-1") {  # Format: lock_id-chainId
+    lock_id
     chain_id
     token {
-      token_address
-      chain_id
+      address: token_address
     }
     allocator {
-      allocator_address
+      address: allocator_address
+    }
+    account_balances {
+      totalCount
+      items {
+        account {
+          id
+        }
+        balance
+      }
     }
     reset_period
     is_multichain
-    total_supply
-    account_balances {
-      items {
-        account {
-          id  # account address
+  }
+}
+```
+
+This query returns:
+- Resource lock details
+- Token address
+- All accounts holding this resource lock
+- Each account's balance
+
+#### Get account resource locks directly with balances and token info
+```graphql
+query {
+  accounts {
+    items {
+      id
+      resource_locks {
+        items {
+          resourceLock {
+            lock_id
+            chain_id
+            token {
+              address: token_address
+            }
+            withdrawal_status
+            withdrawable_at
+          }
+          balance  # Account's balance for this resource lock
         }
-        balance
+      }
+    }
+  }
+}
+```
+
+This query demonstrates:
+- Direct querying of resource locks for each account
+- Access to lock details including withdrawal status
+- Associated token information
+- Account-specific balances for each resource lock
+
+#### Get all registered compacts with their associated claims
+> Note: This query has not been tested as there is not yet relevant data to index.
+
+```graphql
+query {
+  registered_compacts {
+    items {
+      claim_hash
+      chain_id
+      sponsor {
+        address: id
+      }
+      registered_at
+      block_number
+      claim {  # Will be null if claim hasn't been processed yet
+        allocator {
+          address: id
+        }
+        arbiter
+        timestamp
       }
     }
   }
@@ -157,6 +240,36 @@ query {
 ```
 
 This query returns:
-- Lock details (ID, original lock ID, chain ID, token, allocator, reset period, scope)
-- Lock-specific total supply
-- All accounts holding a balance in the lock
+- All registered compacts across networks
+- Their claim hashes and registration details
+- The sponsor's address
+- Associated claim details (if the claim exists)
+
+#### Get an account's registered compacts and their claim status
+> Note: This query has not been tested as there is not yet relevant data to index.
+
+```graphql
+query {
+  account(id: "0x1234...") {
+    registered_compacts(orderBy: "registered_at", orderDirection: "DESC") {
+      items {
+        claim_hash
+        chain_id
+        registered_at
+        claim {  # Will be null if claim hasn't been processed yet
+          allocator {
+            address: id
+          }
+          arbiter
+          timestamp
+        }
+      }
+    }
+  }
+}
+```
+
+This query returns:
+- All compacts registered by a specific account
+- Registration timestamps
+- Associated claim details when available

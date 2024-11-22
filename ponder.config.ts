@@ -1,5 +1,6 @@
 import { createConfig } from "@ponder/core";
 import { http } from "viem";
+import { resolvers } from "./ponder.schema";
 
 import { TheCompactAbi } from "./abis/TheCompactAbi";
 
@@ -28,4 +29,5 @@ export default createConfig({
       },
     },
   },
+  resolvers,
 });
