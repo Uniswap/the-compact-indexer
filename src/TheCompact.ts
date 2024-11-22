@@ -1,5 +1,5 @@
 import { ponder } from "@/generated";
-import { padHex, toHex, zeroAddress } from "viem";
+import { zeroAddress } from "viem";
 import * as schema from "../ponder.schema";
 
 // Reset period values in seconds
@@ -19,6 +19,12 @@ enum Scope {
   ChainSpecific,
 }
 
+enum ForcedWithdrawalStatus {
+  Pending,
+  Enabled,
+  Disabled,
+}
+
 // Unified event handlers for all networks
 ponder.on("TheCompact:AllocatorRegistered", async ({ event, context }) => {
   const { allocator, allocatorId } = event.args;
@@ -27,8 +33,7 @@ ponder.on("TheCompact:AllocatorRegistered", async ({ event, context }) => {
   await context.db
     .insert(schema.allocator)
     .values({
-      allocator,
-      allocator_id: allocatorId,
+      address: allocator,
       first_seen_at: event.block.timestamp,
     })
     .onConflictDoNothing();
@@ -38,6 +43,13 @@ ponder.on("TheCompact:AllocatorRegistered", async ({ event, context }) => {
     chain_id: BigInt(chainId),
     registered_at: event.block.timestamp,
   });
+
+  await context.db.insert(schema.allocator_chain_id).values({
+    allocator_address: allocator,
+    allocator_id: BigInt(allocatorId),
+    chain_id: BigInt(chainId),
+    first_seen_at: event.block.timestamp,
+  });
 });
 
 ponder.on("TheCompact:Transfer", async ({ event, context }) => {
@@ -46,8 +58,10 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
   const transferAmount = BigInt(amount);
 
   // Extract token address from the last 160 bits of the ID
-  // Note: is it safe to assume `id` <= 20 bytes?
-  const tokenAddress = padHex(toHex(id), { size: 20 });
+  const tokenAddress = `0x${id
+    .toString(16)
+    .padStart(64, "0")
+    .slice(-40)}` as const;
 
   // Handle mints and burns
   const isMint = from === zeroAddress;
@@ -207,33 +221,130 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
   }
 });
 
-// Other events that we'll implement later
-ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
-  console.log(`CompactRegistered event on ${context.network.name}:`, {
-    ...event,
-    args: event.args,
-    block: event.block,
-    address: event.log.address,
-    eventName: event.eventName,
-    source: event.source,
-    name: event.name,
-  });
-});
+ponder.on(
+  "TheCompact:ForcedWithdrawalStatusUpdated",
+  async ({ event, context }) => {
+    const {
+      account: accountAddress,
+      id,
+      activating,
+      withdrawableAt,
+    } = event.args;
+    const chainId = BigInt(context.network.chainId);
+    const timestamp = BigInt(event.block.timestamp);
 
-ponder.on("TheCompact:Approval", async ({ event, context }) => {
-  console.log(`Approval event on ${context.network.name}:`, {
-    ...event,
-    args: event.args,
-    block: event.block,
-    address: event.log.address,
-    eventName: event.eventName,
-    source: event.source,
-    name: event.name,
-  });
-});
+    // Get the balance record
+    const existingBalance = await context.db.find(
+      schema.account_resource_lock_balance,
+      {
+        account_address: accountAddress,
+        resource_lock: id,
+        chain_id: chainId,
+      }
+    );
+
+    if (existingBalance) {
+      if (activating) {
+        // Determine status based on withdrawableAt
+        const withdrawableAtBigInt = BigInt(withdrawableAt);
+        const status =
+          withdrawableAtBigInt > timestamp
+            ? ForcedWithdrawalStatus.Pending
+            : ForcedWithdrawalStatus.Enabled;
+
+        await context.db
+          .update(schema.account_resource_lock_balance, {
+            account_address: accountAddress,
+            resource_lock: id,
+            chain_id: chainId,
+          })
+          .set({
+            withdrawal_status: status,
+            // Use 0n instead of null for "no withdrawal time"
+            withdrawable_at:
+              withdrawableAtBigInt === 0n ? 0n : withdrawableAtBigInt,
+            last_updated_at: timestamp,
+          });
+      } else {
+        await context.db
+          .update(schema.account_resource_lock_balance, {
+            account_address: accountAddress,
+            resource_lock: id,
+            chain_id: chainId,
+          })
+          .set({
+            withdrawal_status: ForcedWithdrawalStatus.Disabled,
+            withdrawable_at: 0n, // Use 0n for disabled state
+            last_updated_at: timestamp,
+          });
+      }
+    }
+  }
+);
 
 ponder.on("TheCompact:Claim", async ({ event, context }) => {
-  console.log(`Claim event on ${context.network.name}:`, {
+  const { sponsor, allocator, arbiter, claimHash } = event.args;
+  const chainId = context.network.chainId;
+
+  // Ensure sponsor account exists
+  await context.db
+    .insert(schema.account)
+    .values({
+      address: sponsor,
+      first_seen_at: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
+  // Ensure allocator exists
+  await context.db
+    .insert(schema.account)
+    .values({
+      address: allocator,
+      first_seen_at: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
+  // Create claim record
+
+  // NOTE: Do we need allocator_id?
+  await context.db.insert(schema.claim).values({
+    claim_hash: claimHash,
+    chain_id: BigInt(chainId),
+    sponsor,
+    allocator,
+    arbiter,
+    timestamp: event.block.timestamp,
+    block_number: event.block.number,
+  });
+});
+
+// Other events that we'll implement later
+ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
+  const { sponsor, claimHash } = event.args;
+  const chainId = context.network.chainId;
+
+  // Ensure sponsor account exists
+  await context.db
+    .insert(schema.account)
+    .values({
+      address: sponsor,
+      first_seen_at: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
+  // Create registered compact record
+  await context.db.insert(schema.registered_compact).values({
+    claim_hash: claimHash,
+    chain_id: BigInt(chainId),
+    sponsor,
+    registered_at: event.block.timestamp,
+    block_number: event.block.number,
+  });
+});
+
+// Other events that we'll implement later
+ponder.on("TheCompact:Approval", async ({ event, context }) => {
+  console.log(`Approval event on ${context.network.name}:`, {
     ...event,
     args: event.args,
     block: event.block,
@@ -255,21 +366,3 @@ ponder.on("TheCompact:OperatorSet", async ({ event, context }) => {
     name: event.name,
   });
 });
-
-ponder.on(
-  "TheCompact:ForcedWithdrawalStatusUpdated",
-  async ({ event, context }) => {
-    console.log(
-      `ForcedWithdrawalStatusUpdated event on ${context.network.name}:`,
-      {
-        ...event,
-        args: event.args,
-        block: event.block,
-        address: event.log.address,
-        eventName: event.eventName,
-        source: event.source,
-        name: event.name,
-      }
-    );
-  }
-);
