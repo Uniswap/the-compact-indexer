@@ -1,5 +1,5 @@
 import { ponder } from "@/generated";
-import { allocator, allocator_registration, deposited_token, resource_lock, account_token_balance, account_resource_lock_balance, account, account_resource_lock_withdrawal_status, claim, allocator_chain_id } from "../ponder.schema";
+import { allocator, allocator_registration, deposited_token, resource_lock, account_token_balance, account_resource_lock_balance, account, account_resource_lock_withdrawal_status, claim, allocator_chain_id, registered_compact } from "../ponder.schema";
 
 const NETWORK_TO_CHAIN_ID: Record<string, number> = {
   "mainnet": 1,
@@ -369,6 +369,42 @@ async function handleClaim({ event, context }: any) {
   }
 }
 
+async function handleCompactRegistered({ event, context }: any) {
+  try {
+    const { sponsor, claimHash } = event.args;
+    const chainId = context.network.chainId;
+    const timestamp = event.block.timestamp;
+    const blockNumber = event.block.number;
+
+    // Normalize the sponsor address
+    const normalizedSponsorAddress = sponsor.toLowerCase();
+
+    // Ensure sponsor account exists
+    const existingSponsor = await context.db.find(account, { id: normalizedSponsorAddress });
+    if (!existingSponsor) {
+      await context.db.insert(account).values({
+        id: normalizedSponsorAddress,
+        first_seen_at: timestamp,
+      });
+    }
+
+    // Create registered compact record
+    const compactId = `${claimHash}-${chainId}`;
+    await context.db.insert(registered_compact).values({
+      id: compactId,
+      claim_hash: claimHash,
+      chain_id: chainId,
+      sponsor_id: normalizedSponsorAddress,
+      registered_at: timestamp,
+      block_number: blockNumber,
+    });
+
+  } catch (error) {
+    console.error("Error in handleCompactRegistered:", error);
+    throw error;
+  }
+}
+
 // Unified event handlers for all networks
 ponder.on("TheCompact:AllocatorRegistered", async ({ event, context }) => {
   await handleAllocatorRegistered({ event, context });
@@ -386,19 +422,11 @@ ponder.on("TheCompact:Claim", async ({ event, context }) => {
   await handleClaim({ event, context });
 });
 
-// Other events that we'll implement later
 ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
-  console.log(`CompactRegistered event on ${context.network.name}:`, {
-    ...event,
-    args: event.args,
-    block: event.block,
-    address: event.address,
-    eventName: event.eventName,
-    source: event.source,
-    name: event.name
-  });
+  await handleCompactRegistered({ event, context });
 });
 
+// Other events that we'll implement later
 ponder.on("TheCompact:Approval", async ({ event, context }) => {
   console.log(`Approval event on ${context.network.name}:`, {
     ...event,

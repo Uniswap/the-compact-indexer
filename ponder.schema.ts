@@ -154,6 +154,24 @@ export const claim = onchainTable(
   })
 );
 
+export const registered_compact = onchainTable(
+  "registered_compact",
+  (t) => ({
+    id: t.text().notNull(),  // claim_hash-chainId
+    claim_hash: t.text().notNull(),
+    chain_id: t.bigint().notNull(),
+    sponsor_id: t.text().notNull(),
+    registered_at: t.bigint().notNull(),
+    block_number: t.bigint().notNull(),
+  }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+    claimHashIdx: index().on(table.claim_hash),
+    chainIdIdx: index().on(table.chain_id),
+    sponsorIdx: index().on(table.sponsor_id),
+  })
+);
+
 export const allocatorChainIdRelations = relations(allocator_chain_id, ({ one }) => ({
   parent: one(allocator, {
     fields: [allocator_chain_id.allocator_address],
@@ -173,6 +191,10 @@ export const claimRelations = relations(claim, ({ one }) => ({
   allocator_chain_id: one(allocator_chain_id, {
     fields: [claim.allocator_address, claim.chain_id],
     references: [allocator_chain_id.allocator_address, allocator_chain_id.chain_id],
+  }),
+  registered_compact: one(registered_compact, {
+    fields: [claim.claim_hash, claim.chain_id],
+    references: [registered_compact.claim_hash, registered_compact.chain_id],
   }),
 }));
 
@@ -202,6 +224,10 @@ export const accountRelations = relations(account, ({ many }) => ({
   claims: many(claim, {
     fields: [account.id],
     references: [claim.sponsor_id],
+  }),
+  registered_compacts: many(registered_compact, {
+    fields: [account.id],
+    references: [registered_compact.sponsor_id],
   }),
   token_balances: many(account_token_balance, {
     fields: [account.id],
@@ -266,6 +292,17 @@ export const accountResourceLockBalanceRelations = relations(account_resource_lo
   token_balance: one(account_token_balance, {
     fields: [account_resource_lock_balance.account_id, account_resource_lock_balance.token_registration_id],
     references: [account_token_balance.account_id, account_token_balance.token_registration_id],
+  }),
+}));
+
+export const registeredCompactRelations = relations(registered_compact, ({ one }) => ({
+  sponsor: one(account, {
+    fields: [registered_compact.sponsor_id],
+    references: [account.id],
+  }),
+  claim: one(claim, {
+    fields: [registered_compact.claim_hash, registered_compact.chain_id],
+    references: [claim.claim_hash, claim.chain_id],
   }),
 }));
 

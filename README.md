@@ -212,3 +212,89 @@ This query demonstrates:
 - Access to lock details including withdrawal status
 - Associated token information
 - Account-specific balances for each resource lock
+
+#### Get all registered compacts with their associated claims
+```graphql
+query {
+  registered_compacts {
+    items {
+      claim_hash
+      chain_id
+      sponsor {
+        address: id
+      }
+      registered_at
+      block_number
+      claim {  # Will be null if claim hasn't been processed yet
+        allocator {
+          address: id
+        }
+        arbiter
+        timestamp
+      }
+    }
+  }
+}
+```
+
+This query returns:
+- All registered compacts across networks
+- Their claim hashes and registration details
+- The sponsor's address
+- Associated claim details (if the claim exists)
+
+#### Get all claims and their registration status
+```graphql
+query {
+  claims(orderBy: timestamp, orderDirection: DESC) {
+    items {
+      claim_hash
+      chain_id
+      sponsor {
+        address: id
+      }
+      allocator {
+        address: id
+      }
+      arbiter
+      timestamp
+      registered_compact {  # Will be null if compact hasn't been registered yet
+        registered_at
+        block_number
+      }
+    }
+  }
+}
+```
+
+This query returns:
+- All processed claims, sorted by timestamp
+- Complete claim details including sponsor, allocator, and arbiter
+- Registration details if the claim has been registered as a compact
+
+#### Get an account's registered compacts and their claim status
+```graphql
+query {
+  account(id: "0x1234...") {
+    registered_compacts(orderBy: registered_at, orderDirection: DESC) {
+      items {
+        claim_hash
+        chain_id
+        registered_at
+        claim {  # Will be null if claim hasn't been processed yet
+          allocator {
+            address: id
+          }
+          arbiter
+          timestamp
+        }
+      }
+    }
+  }
+}
+```
+
+This query returns:
+- All compacts registered by a specific account
+- Registration timestamps
+- Associated claim details when available
