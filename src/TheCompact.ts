@@ -86,16 +86,20 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         total_supply: row.total_supply + transferAmount,
       }));
 
-    await context.db.insert(schema.resource_lock).values({
-      lock_id: id,
-      chain_id: chainId,
-      token_address: tokenAddress,
-      allocator_address: by,
-      reset_period: BigInt(resetPeriod),
-      is_multichain: isMultichain,
-      minted_at: event.block.timestamp,
-      total_supply: transferAmount,
-    });
+    await context.db
+      .insert(schema.resource_lock)
+      .values({
+        lock_id: id,
+        chain_id: chainId,
+        token_address: tokenAddress,
+        allocator_address: by,
+        reset_period: BigInt(resetPeriod),
+        is_multichain: isMultichain,
+        minted_at: event.block.timestamp,
+        total_supply: transferAmount,
+      })
+      // TODO: Is this correct?
+      .onConflictDoNothing();
   } else if (isBurn) {
     const existingToken = await context.db.find(schema.deposited_token, {
       token_address: tokenAddress,
