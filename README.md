@@ -28,7 +28,7 @@ This indexer tracks events from The Compact contract across multiple networks:
 
 ## Installation
 
-Create a `.env` file with RPC URLs for each network:
+Create a `.env.local` file with RPC URLs for each network:
 ```bash
 PONDER_RPC_URL_1=           # Mainnet
 PONDER_RPC_URL_11155111=    # Sepolia
