@@ -192,10 +192,6 @@ export const claimRelations = relations(claim, ({ one }) => ({
     fields: [claim.allocator_address, claim.chain_id],
     references: [allocator_chain_id.allocator_address, allocator_chain_id.chain_id],
   }),
-  registered_compact: one(registered_compact, {
-    fields: [claim.claim_hash, claim.chain_id],
-    references: [registered_compact.claim_hash, registered_compact.chain_id],
-  }),
 }));
 
 export const allocatorRelations = relations(allocator, ({ many }) => ({
@@ -311,6 +307,14 @@ export const resolvers = {
     allocator_id: (chainId: any) => chainId.allocator_id,
   },
   claim: {
-    allocator_id: (claim: any) => claim.allocator_id,
+    allocator_id: (claim: any) => claim.allocator_address,
+  },
+  registered_compact: {
+    claim: async (compact: any, _: any, context: any) => {
+      return context.db.find(claim, {
+        claim_hash: compact.claim_hash,
+        chain_id: compact.chain_id,
+      });
+    },
   },
 };

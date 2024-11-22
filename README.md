@@ -214,6 +214,8 @@ This query demonstrates:
 - Account-specific balances for each resource lock
 
 #### Get all registered compacts with their associated claims
+> Note: This query has not been tested as there is not yet relevant data to index.
+
 ```graphql
 query {
   registered_compacts {
@@ -243,40 +245,13 @@ This query returns:
 - The sponsor's address
 - Associated claim details (if the claim exists)
 
-#### Get all claims and their registration status
-```graphql
-query {
-  claims(orderBy: timestamp, orderDirection: DESC) {
-    items {
-      claim_hash
-      chain_id
-      sponsor {
-        address: id
-      }
-      allocator {
-        address: id
-      }
-      arbiter
-      timestamp
-      registered_compact {  # Will be null if compact hasn't been registered yet
-        registered_at
-        block_number
-      }
-    }
-  }
-}
-```
-
-This query returns:
-- All processed claims, sorted by timestamp
-- Complete claim details including sponsor, allocator, and arbiter
-- Registration details if the claim has been registered as a compact
-
 #### Get an account's registered compacts and their claim status
+> Note: This query has not been tested as there is not yet relevant data to index.
+
 ```graphql
 query {
   account(id: "0x1234...") {
-    registered_compacts(orderBy: registered_at, orderDirection: DESC) {
+    registered_compacts(orderBy: "registered_at", orderDirection: "DESC") {
       items {
         claim_hash
         chain_id
