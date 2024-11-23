@@ -144,7 +144,7 @@ export const claim = onchainTable(
 export const registeredCompact = onchainTable(
   "registered_compact",
   (t) => ({
-    claimHash: t.hex().notNull(),
+    claimHash: t.hex(),  // Nullable but part of PK
     chainId: t.bigint().notNull(),
     sponsor: t.hex().notNull(),
     registeredAt: t.bigint().notNull(),
@@ -152,7 +152,6 @@ export const registeredCompact = onchainTable(
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.claimHash, table.chainId] }),
-    claimHashIdx: index().on(table.claimHash),
     chainIdIdx: index().on(table.chainId),
     sponsorIdx: index().on(table.sponsor),
   })
@@ -254,4 +253,3 @@ export const registeredCompactRelations = relations(registeredCompact, ({ one })
     references: [claim.claimHash, claim.chainId],
   }),
 }));
-
