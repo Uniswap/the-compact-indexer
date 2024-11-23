@@ -149,6 +149,7 @@ export const registeredCompact = onchainTable(
     sponsor: t.hex().notNull(),
     registeredAt: t.bigint().notNull(),
     blockNumber: t.bigint().notNull(),
+    expires: t.bigint().notNull(),  // Add expires field
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.claimHash, table.chainId] }),
