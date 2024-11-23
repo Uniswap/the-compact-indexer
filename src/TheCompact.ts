@@ -339,10 +339,10 @@ ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
 
   // Create registered compact record
   await context.db.insert(schema.registeredCompact).values({
-    claimHash: claimHash,
+    claimHash,
     chainId,
     sponsor,
-    registeredAt: event.block.timestamp,
+    timestamp: event.block.timestamp,
     blockNumber: event.block.number,
     expires: BigInt(expires),
   });
