@@ -150,6 +150,7 @@ export const registeredCompact = onchainTable(
     timestamp: t.bigint().notNull(),
     blockNumber: t.bigint().notNull(),
     expires: t.bigint().notNull(),
+    typehash: t.hex().notNull(),  // Added typehash field from CompactRegistered event
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.claimHash, table.chainId] }),

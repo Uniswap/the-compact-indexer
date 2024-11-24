@@ -325,7 +325,7 @@ ponder.on("TheCompact:Claim", async ({ event, context }) => {
 
 // Other events that we'll implement later
 ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
-  const { sponsor, claimHash, expires } = event.args;
+  const { sponsor, claimHash, typehash, expires } = event.args;
   const chainId = BigInt(context.network.chainId);
 
   // Ensure sponsor account exists
@@ -345,6 +345,7 @@ ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
     timestamp: event.block.timestamp,
     blockNumber: event.block.number,
     expires: BigInt(expires),
+    typehash,  // Store the typehash from the event
   });
 });
 
