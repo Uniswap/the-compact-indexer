@@ -1,6 +1,7 @@
 import { ponder } from "@/generated";
 import { zeroAddress } from "viem";
 import * as schema from "../ponder.schema";
+import { eq } from "@ponder/core";
 
 // Reset period values in seconds
 const ResetPeriod = {
@@ -345,7 +346,7 @@ ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
     timestamp: event.block.timestamp,
     blockNumber: event.block.number,
     expires: BigInt(expires),
-    typehash,  // Store the typehash from the event
+    typehash,
   });
 });
 
