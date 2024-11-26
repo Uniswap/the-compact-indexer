@@ -9,12 +9,12 @@ export const allocator = onchainTable(
   "allocator",
   (t) => ({
     address: t.hex().notNull(),
-    id: t.bigint().notNull(),
+    allocatorId: t.bigint().notNull(),
     chainId: t.bigint().notNull(),
     firstSeenAt: t.bigint().notNull(),
   }),
   (table) => ({
-    pk: primaryKey({ columns: [table.address, table.id, table.chainId] }),
+    pk: primaryKey({ columns: [table.address, table.allocatorId, table.chainId] }),
     allocatorAddressIdx: index().on(table.address),
     chainIdIdx: index().on(table.chainId),
   })
@@ -163,6 +163,20 @@ export const registeredCompact = onchainTable(
   })
 );
 
+export const allocatorLookup = onchainTable(
+  "allocatorLookup",
+  (t) => ({
+    allocatorId: t.bigint().notNull(),
+    chainId: t.bigint().notNull(),
+    allocatorAddress: t.hex().notNull(),
+  }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.allocatorId, table.chainId] }),
+    chainIdIdx: index().on(table.chainId),
+    allocatorAddressIdx: index().on(table.allocatorAddress),
+  })
+);
+
 export const accountRelations = relations(account, ({ many }) => ({
   claims: many(claim),
   registeredCompacts: many(registeredCompact),
@@ -175,7 +189,6 @@ export const allocatorRelations = relations(allocator, ({ many }) => ({
   registrations: many(allocatorRegistration),
   claims: many(claim),
 }));
-
 
 export const claimRelations = relations(claim, ({ one }) => ({
   sponsor: one(account, {

@@ -30,6 +30,13 @@ ponder.on("TheCompact:AllocatorRegistered", async ({ event, context }) => {
   const { allocator, allocatorId } = event.args;
   const chainId = BigInt(context.network.chainId);
 
+  // Insert into allocatorLookup table
+  await context.db.insert(schema.allocatorLookup).values({
+    allocatorId: BigInt(allocatorId),
+    chainId,
+    allocatorAddress: allocator,
+  });
+
   await context.db.insert(schema.allocatorRegistration).values({
     allocatorAddress: allocator,
     chainId,
@@ -38,14 +45,14 @@ ponder.on("TheCompact:AllocatorRegistered", async ({ event, context }) => {
 
   await context.db.insert(schema.allocator).values({
     address: allocator,
-    id: BigInt(allocatorId),
+    allocatorId: BigInt(allocatorId),
     chainId: BigInt(chainId),
     firstSeenAt: event.block.timestamp,
   });
 });
 
 ponder.on("TheCompact:Transfer", async ({ event, context }) => {
-  const { by, from, to, id, amount } = event.args;
+  const { from, to, id, amount } = event.args;
   const chainId = BigInt(context.network.chainId);
   const transferAmount = BigInt(amount);
 
@@ -59,11 +66,19 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
   const isMint = from === zeroAddress;
   const isBurn = to === zeroAddress;
 
-  // Extract reset period and scope from amount
-  const resetPeriodIndex = Number((amount >> 252n) & 0x7n);
-  const scope = Number((amount >> 255n) & 0x1n);
+  // Extract reset period and scope from id
+  const resetPeriodIndex = Number((id >> 252n) & 0x7n);
+  const scope = Number((id >> 255n) & 0x1n);
   const resetPeriod = Object.values(ResetPeriod)[resetPeriodIndex]!;
   const isMultichain = scope === Scope.Multichain;
+
+  const allocatorId = (id >> 160n) & ((1n << 92n) - 1n);
+
+  const allocatorMapping = await context.db.find(schema.allocatorLookup, {
+    allocatorId, chainId
+  });
+
+  const allocatorAddress = allocatorMapping?.allocatorAddress
 
   if (isMint) {
     await context.db
@@ -84,7 +99,7 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         lockId: id,
         chainId,
         tokenAddress,
-        allocatorAddress: by,
+        allocatorAddress,
         resetPeriod: BigInt(resetPeriod),
         isMultichain: isMultichain,
         mintedAt: event.block.timestamp,
