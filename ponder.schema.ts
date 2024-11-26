@@ -62,6 +62,9 @@ export const resourceLock = onchainTable(
     totalSupply: t.bigint().notNull(),
     withdrawalStatus: t.integer().notNull().default(0),
     withdrawableAt: t.bigint().notNull().default(0n),
+    name: t.text().notNull(),
+    symbol: t.text().notNull(),
+    decimals: t.integer().notNull(),
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.lockId, table.chainId] }),

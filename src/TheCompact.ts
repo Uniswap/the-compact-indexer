@@ -80,7 +80,7 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
 
   const allocatorAddress = allocatorMapping?.allocatorAddress
 
-  if (isMint) {
+  if (isMint) {    
     await context.db
       .insert(schema.depositedToken)
       .values({
@@ -93,6 +93,36 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         totalSupply: row.totalSupply + transferAmount,
       }));
 
+      const { TheCompact } = context.contracts;
+    
+      const [ nameResult, symbolResult, decimalsResult ] = await context.client.multicall({
+        contracts: [
+          {
+            abi: TheCompact.abi,
+            address: TheCompact.address,
+            functionName: "name",
+            args: [id],
+          },
+          {
+            abi: TheCompact.abi,
+            address: TheCompact.address,
+            functionName: "symbol",
+            args: [id],
+          },
+          {
+            abi: TheCompact.abi,
+            address: TheCompact.address,
+            functionName: "decimals",
+            args: [id],
+          }
+        ]
+      });
+    
+    const name = nameResult?.result;
+    const symbol = symbolResult?.result;
+    const decimals = decimalsResult?.result;
+    
+
     await context.db
       .insert(schema.resourceLock)
       .values({
@@ -104,6 +134,9 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         isMultichain: isMultichain,
         mintedAt: event.block.timestamp,
         totalSupply: transferAmount,
+        name,
+        symbol,
+        decimals,
       })
       .onConflictDoUpdate((row) => ({
         totalSupply: row.totalSupply + transferAmount,
