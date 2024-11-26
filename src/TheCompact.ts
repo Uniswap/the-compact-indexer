@@ -1,7 +1,6 @@
 import { ponder } from "@/generated";
 import { zeroAddress } from "viem";
 import * as schema from "../ponder.schema";
-import { eq } from "@ponder/core";
 
 // Reset period values in seconds
 const ResetPeriod = {
@@ -31,23 +30,15 @@ ponder.on("TheCompact:AllocatorRegistered", async ({ event, context }) => {
   const { allocator, allocatorId } = event.args;
   const chainId = BigInt(context.network.chainId);
 
-  await context.db
-    .insert(schema.allocator)
-    .values({
-      address: allocator,
-      firstSeenAt: event.block.timestamp,
-    })
-    .onConflictDoNothing();
-
   await context.db.insert(schema.allocatorRegistration).values({
     allocatorAddress: allocator,
     chainId,
     registeredAt: event.block.timestamp,
   });
 
-  await context.db.insert(schema.allocatorChainId).values({
-    allocatorAddress: allocator,
-    allocatorId: BigInt(allocatorId),
+  await context.db.insert(schema.allocator).values({
+    address: allocator,
+    id: BigInt(allocatorId),
     chainId: BigInt(chainId),
     firstSeenAt: event.block.timestamp,
   });
@@ -180,6 +171,17 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
           lastUpdatedAt: event.block.timestamp,
         });
     }
+
+    // Insert delta
+    await context.db.insert(schema.accountDelta).values({
+      id: `${event.log.id}-from`,
+      address: from,
+      tokenAddress,
+      resourceLock: id,
+      chainId,
+      delta: -transferAmount,
+      blockNumber: event.block.number,
+    });
   }
 
   // Update receiver balances (unless burning)
@@ -224,6 +226,17 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         balance: row.balance + transferAmount,
         lastUpdatedAt: event.block.timestamp,
       }));
+
+    // Insert delta
+    await context.db.insert(schema.accountDelta).values({
+      id: `${event.log.id}-to`,
+      address: to,
+      tokenAddress,
+      resourceLock: id,
+      chainId,
+      delta: transferAmount,
+      blockNumber: event.block.number,
+    });
   }
 });
 
@@ -259,7 +272,7 @@ ponder.on(
             : ForcedWithdrawalStatus.Enabled;
 
         await context.db
-            .update(schema.accountResourceLockBalance, {
+          .update(schema.accountResourceLockBalance, {
             accountAddress,
             resourceLock: id,
             chainId,

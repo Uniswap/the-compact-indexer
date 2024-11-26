@@ -8,22 +8,14 @@ export const account = onchainTable("account", (t) => ({
 export const allocator = onchainTable(
   "allocator",
   (t) => ({
-    address: t.hex().primaryKey(),
-    firstSeenAt: t.bigint().notNull(),
-  })
-);
-
-export const allocatorChainId = onchainTable(
-  "allocatorChainId",
-  (t) => ({
-    allocatorAddress: t.hex().notNull(),
-    allocatorId: t.bigint().notNull(),
+    address: t.hex().notNull(),
+    id: t.bigint().notNull(),
     chainId: t.bigint().notNull(),
     firstSeenAt: t.bigint().notNull(),
   }),
   (table) => ({
-    pk: primaryKey({ columns: [table.allocatorAddress, table.allocatorId, table.chainId] }),
-    allocatorAddressIdx: index().on(table.allocatorAddress),
+    pk: primaryKey({ columns: [table.address, table.id, table.chainId] }),
+    allocatorAddressIdx: index().on(table.address),
     chainIdIdx: index().on(table.chainId),
   })
 );
@@ -58,7 +50,7 @@ export const depositedToken = onchainTable(
 );
 
 export const resourceLock = onchainTable(
-  "resourceLock",
+  "resource_lock",
   (t) => ({
     lockId: t.bigint().notNull(),
     chainId: t.bigint().notNull(),
@@ -120,6 +112,16 @@ export const accountResourceLockBalance = onchainTable(
   })
 );
 
+export const accountDelta = onchainTable("account_delta", (t) => ({
+  id: t.text().primaryKey(),
+  address: t.hex().notNull(),
+  tokenAddress: t.hex().notNull(),
+  resourceLock: t.bigint().notNull(),
+  chainId: t.bigint().notNull(),
+  delta: t.bigint().notNull(),
+  blockNumber: t.bigint().notNull(),
+}))
+
 export const claim = onchainTable(
   "claim",
   (t) => ({
@@ -167,17 +169,11 @@ export const accountRelations = relations(account, ({ many }) => ({
 }));
 
 export const allocatorRelations = relations(allocator, ({ many }) => ({
-  supportedChains: many(allocatorChainId),
+
   registrations: many(allocatorRegistration),
   claims: many(claim),
 }));
 
-export const allocatorChainIdRelations = relations(allocatorChainId, ({ one }) => ({
-  parent: one(allocator, {
-    fields: [allocatorChainId.allocatorAddress],
-    references: [allocator.address],
-  }),
-}));
 
 export const claimRelations = relations(claim, ({ one }) => ({
   sponsor: one(account, {
@@ -185,12 +181,8 @@ export const claimRelations = relations(claim, ({ one }) => ({
     references: [account.address],
   }),
   allocator: one(allocator, {
-    fields: [claim.allocator],
-    references: [allocator.address],
-  }),
-  allocatorChainId: one(allocatorChainId, {
     fields: [claim.allocator, claim.chainId],
-    references: [allocatorChainId.allocatorAddress, allocatorChainId.chainId],
+    references: [allocator.address, allocator.chainId],
   }),
 }));
 
