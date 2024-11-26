@@ -20,15 +20,15 @@ ponder.get("/resource-locks/:chainId/:lockId", async (c) => {
       )
     )
     .innerJoin(
-      schema.account_resource_lock_balance,
+      schema.accountResourceLockBalance,
       and(
         eq(
           schema.resourceLock.lockId,
-          schema.account_resource_lock_balance.resourceLock
+          schema.accountResourceLockBalance.resourceLock
         ),
         eq(
           schema.resourceLock.chainId,
-          schema.account_resource_lock_balance.chainId
+          schema.accountResourceLockBalance.chainId
         )
       )
     );
