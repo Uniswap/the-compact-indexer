@@ -176,11 +176,13 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
     await context.db.insert(schema.accountDelta).values({
       id: `${event.log.id}-from`,
       address: from,
+      counterparty: to,
       tokenAddress,
       resourceLock: id,
       chainId,
       delta: -transferAmount,
       blockNumber: event.block.number,
+      blockTimestamp: event.block.timestamp,
     });
   }
 
@@ -231,11 +233,13 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
     await context.db.insert(schema.accountDelta).values({
       id: `${event.log.id}-to`,
       address: to,
+      counterparty: from,
       tokenAddress,
       resourceLock: id,
       chainId,
       delta: transferAmount,
       blockNumber: event.block.number,
+      blockTimestamp: event.block.timestamp,
     });
   }
 });

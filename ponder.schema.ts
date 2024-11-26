@@ -115,11 +115,13 @@ export const accountResourceLockBalance = onchainTable(
 export const accountDelta = onchainTable("account_delta", (t) => ({
   id: t.text().primaryKey(),
   address: t.hex().notNull(),
+  counterparty: t.hex().notNull(),
   tokenAddress: t.hex().notNull(),
   resourceLock: t.bigint().notNull(),
   chainId: t.bigint().notNull(),
   delta: t.bigint().notNull(),
   blockNumber: t.bigint().notNull(),
+  blockTimestamp: t.bigint().notNull(),
 }))
 
 export const claim = onchainTable(
