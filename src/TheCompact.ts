@@ -89,6 +89,11 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
 
   const allocatorAddress = allocatorMapping!.allocatorAddress;
 
+  const existingLock = await context.db.find(schema.resourceLock, {
+    lockId: id,
+    chainId,
+  });
+
   if (isMint) {
     await context.db
       .insert(schema.depositedToken)
@@ -102,6 +107,52 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         totalSupply: row.totalSupply + transferAmount,
       }));
 
+    if (!existingLock) {
+      const { TheCompact } = context.contracts;
+
+      // NOTE: decimals(id) on The Compact V0 has a bug where it always returns 0 :$
+      const [ nameResult, symbolResult ] = await context.client.multicall({
+        contracts: [
+          {
+            abi: TheCompact.abi,
+            address: TheCompact.address,
+            functionName: "name",
+            args: [id],
+          },
+          {
+            abi: TheCompact.abi,
+            address: TheCompact.address,
+            functionName: "symbol",
+            args: [id],
+          },
+        ]
+      });
+
+      const name = nameResult?.result ?? "Unknown Resource Lock";
+      const symbol = symbolResult?.result ?? "???";
+
+      await context.db
+        .insert(schema.resourceLock)
+        .values({
+          lockId: id,
+          chainId,
+          tokenAddress,
+          allocatorAddress,
+          resetPeriod: BigInt(resetPeriod),
+          isMultichain: isMultichain,
+          mintedAt: event.block.timestamp,
+          totalSupply: transferAmount,
+          name,
+          symbol,
+        })
+    } else {
+      await context.db
+        .update(schema.resourceLock, { lockId: id, chainId })
+        .set({
+          totalSupply: existingLock.totalSupply + transferAmount,
+        });
+    }
+ 
     await context.db
       .insert(schema.resourceLock)
       .values({
@@ -120,10 +171,6 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
   } else if (isBurn) {
     const existingToken = await context.db.find(schema.depositedToken, {
       tokenAddress,
-      chainId,
-    });
-    const existingLock = await context.db.find(schema.resourceLock, {
-      lockId: id,
       chainId,
     });
 
