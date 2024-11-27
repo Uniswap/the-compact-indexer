@@ -27,19 +27,6 @@ export const allocatorRegistration = onchainTable(
   })
 );
 
-export const token = onchainTable(
-  "token", (t) => ({
-    tokenAddress: t.hex().notNull(),
-    chainId: t.bigint().notNull(),
-    name: t.text().notNull(),
-    symbol: t.text().notNull(),
-    decimals: t.integer().notNull(),
-  }),
-  (table) => ({
-    pk: primaryKey({ columns: [table.tokenAddress, table.chainId] })
-  })
-);
-
 export const depositedToken = onchainTable(
   "deposited_token",
   (t) => ({
@@ -47,6 +34,9 @@ export const depositedToken = onchainTable(
     tokenAddress: t.hex().notNull(),
     firstSeenAt: t.bigint().notNull(),
     totalSupply: t.bigint().notNull(),
+    name: t.text().notNull(),
+    symbol: t.text().notNull(),
+    decimals: t.integer().notNull(),
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.tokenAddress, table.chainId] }),

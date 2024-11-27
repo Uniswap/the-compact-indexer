@@ -90,7 +90,7 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
   const allocatorAddress = allocatorMapping!.allocatorAddress;
 
   // Update token table
-  const existingToken = await context.db.find(schema.token, {
+  const existingToken = await context.db.find(schema.depositedToken, {
     tokenAddress,
     chainId,
   });
@@ -134,12 +134,14 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
 
     underlyingTokenDecimals = decimals;
 
-    await context.db.insert(schema.token).values({
+    await context.db.insert(schema.depositedToken).values({
       tokenAddress,
       chainId,
       name,
       symbol,
       decimals,
+      firstSeenAt: event.block.timestamp,
+      totalSupply: 0n,
     });
   } else {
     underlyingTokenDecimals = existingToken.decimals;
@@ -152,14 +154,8 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
 
   if (isMint) {
     await context.db
-      .insert(schema.depositedToken)
-      .values({
-        chainId,
-        tokenAddress,
-        firstSeenAt: event.block.timestamp,
-        totalSupply: transferAmount,
-      })
-      .onConflictDoUpdate((row) => ({
+      .update(schema.depositedToken, {tokenAddress, chainId})
+      .set((row) => ({
         totalSupply: row.totalSupply + transferAmount,
       }));
 
@@ -210,11 +206,6 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         });
     }
   } else if (isBurn) {
-    const existingToken = await context.db.find(schema.depositedToken, {
-      tokenAddress,
-      chainId,
-    });
-
     if (existingToken && existingLock) {
       await context.db
         .update(schema.depositedToken, {
