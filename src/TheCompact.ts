@@ -1,5 +1,5 @@
 import { ponder } from "@/generated";
-import { zeroAddress } from "viem";
+import { zeroAddress, erc20Abi } from "viem";
 import * as schema from "../ponder.schema";
 
 // Reset period values in seconds
@@ -83,12 +83,74 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
   const allocatorId = (id >> 160n) & ((1n << 92n) - 1n);
 
   const allocatorMapping = await context.db.find(schema.allocatorLookup, {
-    allocatorId, chainId
+    allocatorId,
+    chainId,
   });
 
-  const allocatorAddress = allocatorMapping?.allocatorAddress
+  const allocatorAddress = allocatorMapping!.allocatorAddress;
 
-  if (isMint) {    
+  // Update token table
+  const existingToken = await context.db.find(schema.token, {
+    tokenAddress,
+    chainId,
+  });
+
+  let underlyingTokenDecimals;
+  if (!existingToken) {
+    let name;
+    let symbol;
+    let decimals;
+
+    if (tokenAddress === zeroAddress) {
+      name = "Ether";
+      symbol = "ETH";
+      decimals = 18;
+    } else {
+      const [nameResult, symbolResult, decimalsResult] =
+      await context.client.multicall({
+        contracts: [
+          {
+            abi: erc20Abi,
+            address: tokenAddress,
+            functionName: "name",
+          },
+          {
+            abi: erc20Abi,
+            address: tokenAddress,
+            functionName: "symbol",
+          },
+          {
+            abi: erc20Abi,
+            address: tokenAddress,
+            functionName: "decimals",
+          },
+        ],
+      });
+
+      name = nameResult?.result ?? `Unknown Token (${tokenAddress})`;
+      symbol = symbolResult?.result ?? "???";
+      decimals = decimalsResult?.result ?? 0; // maybe use 18??
+    }
+
+    underlyingTokenDecimals = decimals;
+
+    await context.db.insert(schema.token).values({
+      tokenAddress,
+      chainId,
+      name,
+      symbol,
+      decimals,
+    });
+  } else {
+    underlyingTokenDecimals = existingToken.decimals;
+  }
+
+  const existingLock = await context.db.find(schema.resourceLock, {
+    lockId: id,
+    chainId,
+  });
+
+  if (isMint) {
     await context.db
       .insert(schema.depositedToken)
       .values({
@@ -101,9 +163,11 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         totalSupply: row.totalSupply + transferAmount,
       }));
 
+    if (!existingLock) {
       const { TheCompact } = context.contracts;
-    
-      const [ nameResult, symbolResult, decimalsResult ] = await context.client.multicall({
+
+      // NOTE: decimals(id) on The Compact V0 has a bug where it always returns 0 :$
+      const [ nameResult, symbolResult ] = await context.client.multicall({
         contracts: [
           {
             abi: TheCompact.abi,
@@ -117,45 +181,37 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
             functionName: "symbol",
             args: [id],
           },
-          {
-            abi: TheCompact.abi,
-            address: TheCompact.address,
-            functionName: "decimals",
-            args: [id],
-          }
         ]
       });
-    
-    const name = nameResult?.result;
-    const symbol = symbolResult?.result;
-    const decimals = decimalsResult?.result;
-    
 
-    await context.db
-      .insert(schema.resourceLock)
-      .values({
-        lockId: id,
-        chainId,
-        tokenAddress,
-        allocatorAddress,
-        resetPeriod: BigInt(resetPeriod),
-        isMultichain: isMultichain,
-        mintedAt: event.block.timestamp,
-        totalSupply: transferAmount,
-        name,
-        symbol,
-        decimals,
-      })
-      .onConflictDoUpdate((row) => ({
-        totalSupply: row.totalSupply + transferAmount,
-      }));
+      const name = nameResult?.result ?? "Unknown Resource Lock";
+      const symbol = symbolResult?.result ?? "???";
+
+      await context.db
+        .insert(schema.resourceLock)
+        .values({
+          lockId: id,
+          chainId,
+          tokenAddress,
+          allocatorAddress,
+          resetPeriod: BigInt(resetPeriod),
+          isMultichain: isMultichain,
+          mintedAt: event.block.timestamp,
+          totalSupply: transferAmount,
+          name,
+          symbol,
+          decimals: underlyingTokenDecimals, // steal this from underlying
+        })
+    } else {
+      await context.db
+        .update(schema.resourceLock, { lockId: id, chainId })
+        .set({
+          totalSupply: existingLock.totalSupply + transferAmount,
+        });
+    }
   } else if (isBurn) {
     const existingToken = await context.db.find(schema.depositedToken, {
       tokenAddress,
-      chainId,
-    });
-    const existingLock = await context.db.find(schema.resourceLock, {
-      lockId: id,
       chainId,
     });
 
