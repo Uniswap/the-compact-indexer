@@ -196,9 +196,9 @@ query {
             token {
               address: tokenAddress
             }
-            withdrawalStatus
-            withdrawableAt
           }
+          withdrawableAt
+          withdrawalStatus
           balance  # Account's balance for this resource lock
         }
       }
