@@ -56,8 +56,6 @@ export const resourceLock = onchainTable(
     isMultichain: t.boolean().notNull(),
     mintedAt: t.bigint().notNull(),
     totalSupply: t.bigint().notNull(),
-    withdrawalStatus: t.integer().notNull().default(0),
-    withdrawableAt: t.bigint().notNull().default(0n),
     name: t.text().notNull(),
     symbol: t.text().notNull(),
     decimals: t.integer().notNull(),

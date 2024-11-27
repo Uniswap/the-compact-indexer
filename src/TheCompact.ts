@@ -326,6 +326,8 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         tokenAddress,
         balance: transferAmount,
         lastUpdatedAt: event.block.timestamp,
+        withdrawalStatus: 0,
+        withdrawableAt: 0n,
       })
       .onConflictDoUpdate((row) => ({
         balance: row.balance + transferAmount,
@@ -359,6 +361,124 @@ ponder.on(
     const chainId = BigInt(context.network.chainId);
     const timestamp = BigInt(event.block.timestamp);
 
+    // Extract token address from the last 160 bits of the ID
+    const tokenAddress = `0x${id
+      .toString(16)
+      .padStart(64, "0")
+      .slice(-40)}` as const;
+
+    // Extract reset period and scope from id
+    const resetPeriodIndex = Number((id >> 252n) & 0x7n);
+    const scope = Number((id >> 255n) & 0x1n);
+    const resetPeriod = Object.values(ResetPeriod)[resetPeriodIndex]!;
+    const isMultichain = scope === Scope.Multichain;
+
+    const allocatorId = (id >> 160n) & ((1n << 92n) - 1n);
+
+    // Update token table
+    const existingToken = await context.db.find(schema.depositedToken, {
+      tokenAddress,
+      chainId,
+    });
+
+    let underlyingTokenDecimals;
+    if (!existingToken) {
+      let name;
+      let symbol;
+      let decimals;
+
+      if (tokenAddress === zeroAddress) {
+        name = "Ether";
+        symbol = "ETH";
+        decimals = 18;
+      } else {
+        const [nameResult, symbolResult, decimalsResult] =
+        await context.client.multicall({
+          contracts: [
+            {
+              abi: erc20Abi,
+              address: tokenAddress,
+              functionName: "name",
+            },
+            {
+              abi: erc20Abi,
+              address: tokenAddress,
+              functionName: "symbol",
+            },
+            {
+              abi: erc20Abi,
+              address: tokenAddress,
+              functionName: "decimals",
+            },
+          ],
+        });
+
+        name = nameResult?.result ?? `Unknown Token (${tokenAddress})`;
+        symbol = symbolResult?.result ?? "???";
+        decimals = decimalsResult?.result ?? 0; // maybe use 18??
+      }
+
+      underlyingTokenDecimals = decimals;
+
+      await context.db.insert(schema.depositedToken).values({
+        tokenAddress,
+        chainId,
+        name,
+        symbol,
+        decimals,
+        firstSeenAt: event.block.timestamp,
+        totalSupply: 0n,
+      });
+    } else {
+      underlyingTokenDecimals = existingToken.decimals;
+    }
+
+    const existingLock = await context.db.find(schema.resourceLock, {
+      lockId: id,
+      chainId,
+    });
+
+    if (!existingLock) {
+      const { TheCompact } = context.contracts;
+
+      // NOTE: decimals(id) on The Compact V0 has a bug where it always returns 0 :$
+      const [ nameResult, symbolResult ] = await context.client.multicall({
+        contracts: [
+          {
+            abi: TheCompact.abi,
+            address: TheCompact.address,
+            functionName: "name",
+            args: [id],
+          },
+          {
+            abi: TheCompact.abi,
+            address: TheCompact.address,
+            functionName: "symbol",
+            args: [id],
+          },
+        ]
+      });
+
+      const name = nameResult?.result ?? "Unknown Resource Lock";
+      const symbol = symbolResult?.result ?? "???";
+
+      await context.db
+        .insert(schema.resourceLock)
+        .values({
+          lockId: id,
+          chainId,
+          tokenAddress,
+          allocatorAddress,
+          resetPeriod: BigInt(resetPeriod),
+          isMultichain: isMultichain,
+          mintedAt: event.block.timestamp,
+          totalSupply: transferAmount,
+          name,
+          symbol,
+          decimals: underlyingTokenDecimals, // steal this from underlying
+        });
+    }
+
     // Get the balance record
     const existingBalance = await context.db.find(
       schema.accountResourceLockBalance,
@@ -369,43 +489,37 @@ ponder.on(
       }
     );
 
-    if (existingBalance) {
-      if (activating) {
-        // Determine status based on withdrawableAt
-        const withdrawableAtBigInt = BigInt(withdrawableAt);
-        const status =
-          withdrawableAtBigInt > timestamp
-            ? ForcedWithdrawalStatus.Pending
-            : ForcedWithdrawalStatus.Enabled;
-
-        await context.db
-          .update(schema.accountResourceLockBalance, {
-            accountAddress,
-            resourceLock: id,
-            chainId,
-          })
-          .set({
-            withdrawalStatus: status,
-            // Use 0n instead of null for "no withdrawal time"
-            withdrawableAt:
-              withdrawableAtBigInt === 0n ? 0n : withdrawableAtBigInt,
-            lastUpdatedAt: timestamp,
-          });
-      } else {
-        await context.db
-          .update(schema.accountResourceLockBalance, {
-            accountAddress,
-            resourceLock: id,
-            chainId,
-          })
-          .set({
-            withdrawalStatus: ForcedWithdrawalStatus.Disabled,
-            withdrawableAt: 0n, // Use 0n for disabled state
-            lastUpdatedAt: timestamp,
-          });
-      }
+    if (!existingBalance) {
+      await context.db
+      .insert(schema.accountResourceLockBalance)
+      .values({
+        accountAddress,
+        resourceLock: id,
+        chainId,
+        tokenAddress,
+        balance: 0n,
+        lastUpdatedAt: event.block.timestamp,
+        withdrawalStatus: 0,
+        withdrawableAt: 0n,
+      });
     }
-  }
+
+    // Determine status based on withdrawableAt
+    const withdrawableAtBigInt = BigInt(withdrawableAt);
+    const status = activating ? 1 : 0;
+
+    await context.db
+      .update(schema.accountResourceLockBalance, {
+        accountAddress,
+        resourceLock: id,
+        chainId,
+      })
+      .set({
+        withdrawalStatus: status,
+        withdrawableAt: withdrawableAtBigInt,
+        lastUpdatedAt: timestamp,
+      });
+    }
 );
 
 ponder.on("TheCompact:Claim", async ({ event, context }) => {
