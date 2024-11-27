@@ -1,5 +1,5 @@
 import { ponder } from "@/generated";
-import { zeroAddress } from "viem";
+import { zeroAddress, erc20Abi } from "viem";
 import * as schema from "../ponder.schema";
 
 // Reset period values in seconds
@@ -75,12 +75,13 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
   const allocatorId = (id >> 160n) & ((1n << 92n) - 1n);
 
   const allocatorMapping = await context.db.find(schema.allocatorLookup, {
-    allocatorId, chainId
+    allocatorId,
+    chainId,
   });
 
-  const allocatorAddress = allocatorMapping?.allocatorAddress
+  const allocatorAddress = allocatorMapping!.allocatorAddress;
 
-  if (isMint) {    
+  if (isMint) {
     await context.db
       .insert(schema.depositedToken)
       .values({
@@ -93,36 +94,6 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         totalSupply: row.totalSupply + transferAmount,
       }));
 
-      const { TheCompact } = context.contracts;
-    
-      const [ nameResult, symbolResult, decimalsResult ] = await context.client.multicall({
-        contracts: [
-          {
-            abi: TheCompact.abi,
-            address: TheCompact.address,
-            functionName: "name",
-            args: [id],
-          },
-          {
-            abi: TheCompact.abi,
-            address: TheCompact.address,
-            functionName: "symbol",
-            args: [id],
-          },
-          {
-            abi: TheCompact.abi,
-            address: TheCompact.address,
-            functionName: "decimals",
-            args: [id],
-          }
-        ]
-      });
-    
-    const name = nameResult?.result;
-    const symbol = symbolResult?.result;
-    const decimals = decimalsResult?.result;
-    
-
     await context.db
       .insert(schema.resourceLock)
       .values({
@@ -134,9 +105,6 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
         isMultichain: isMultichain,
         mintedAt: event.block.timestamp,
         totalSupply: transferAmount,
-        name,
-        symbol,
-        decimals,
       })
       .onConflictDoUpdate((row) => ({
         totalSupply: row.totalSupply + transferAmount,
@@ -288,6 +256,49 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
       delta: transferAmount,
       blockNumber: event.block.number,
       blockTimestamp: event.block.timestamp,
+    });
+  }
+
+  // Update token table
+  const hasToken = await context.db
+    .find(schema.token, {
+      tokenAddress,
+      chainId,
+    })
+    .then((t) => t !== undefined);
+
+  if (hasToken === false) {
+    const [nameResult, symbolResult, decimalsResult] =
+      await context.client.multicall({
+        contracts: [
+          {
+            abi: erc20Abi,
+            address: tokenAddress,
+            functionName: "name",
+          },
+          {
+            abi: erc20Abi,
+            address: tokenAddress,
+            functionName: "symbol",
+          },
+          {
+            abi: erc20Abi,
+            address: tokenAddress,
+            functionName: "decimals",
+          },
+        ],
+      });
+
+    const name = nameResult?.result ?? "";
+    const symbol = symbolResult?.result ?? "";
+    const decimals = decimalsResult?.result ?? 18;
+
+    await context.db.insert(schema.token).values({
+      tokenAddress,
+      chainId,
+      name,
+      symbol,
+      decimals,
     });
   }
 });

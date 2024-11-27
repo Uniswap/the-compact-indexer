@@ -14,7 +14,9 @@ export const allocator = onchainTable(
     firstSeenAt: t.bigint().notNull(),
   }),
   (table) => ({
-    pk: primaryKey({ columns: [table.address, table.allocatorId, table.chainId] }),
+    pk: primaryKey({
+      columns: [table.address, table.allocatorId, table.chainId],
+    }),
     allocatorAddressIdx: index().on(table.address),
     chainIdIdx: index().on(table.chainId),
   })
@@ -33,6 +35,14 @@ export const allocatorRegistration = onchainTable(
     chainIdIdx: index().on(table.chainId),
   })
 );
+
+export const token = onchainTable("token", (t) => ({
+  tokenAddress: t.hex().notNull(),
+  chainId: t.bigint().notNull(),
+  name: t.text().notNull(),
+  symbol: t.text().notNull(),
+  decimals: t.integer().notNull(),
+}));
 
 export const depositedToken = onchainTable(
   "deposited_token",
@@ -62,9 +72,6 @@ export const resourceLock = onchainTable(
     totalSupply: t.bigint().notNull(),
     withdrawalStatus: t.integer().notNull().default(0),
     withdrawableAt: t.bigint().notNull().default(0n),
-    name: t.text().notNull(),
-    symbol: t.text().notNull(),
-    decimals: t.integer().notNull(),
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.lockId, table.chainId] }),
@@ -125,7 +132,7 @@ export const accountDelta = onchainTable("account_delta", (t) => ({
   delta: t.bigint().notNull(),
   blockNumber: t.bigint().notNull(),
   blockTimestamp: t.bigint().notNull(),
-}))
+}));
 
 export const claim = onchainTable(
   "claim",
@@ -151,13 +158,13 @@ export const claim = onchainTable(
 export const registeredCompact = onchainTable(
   "registered_compact",
   (t) => ({
-    claimHash: t.hex(),  // Nullable but part of PK
+    claimHash: t.hex(), // Nullable but part of PK
     chainId: t.bigint().notNull(),
     sponsor: t.hex().notNull(),
     timestamp: t.bigint().notNull(),
     blockNumber: t.bigint().notNull(),
     expires: t.bigint().notNull(),
-    typehash: t.hex().notNull(),  // Added typehash field from CompactRegistered event
+    typehash: t.hex().notNull(), // Added typehash field from CompactRegistered event
   }),
   (table) => ({
     pk: primaryKey({ columns: [table.claimHash, table.chainId] }),
@@ -188,7 +195,6 @@ export const accountRelations = relations(account, ({ many }) => ({
 }));
 
 export const allocatorRelations = relations(allocator, ({ many }) => ({
-
   registrations: many(allocatorRegistration),
   claims: many(claim),
 }));
@@ -204,64 +210,96 @@ export const claimRelations = relations(claim, ({ one }) => ({
   }),
 }));
 
-export const allocatorRegistrationRelations = relations(allocatorRegistration, ({ one }) => ({
-  allocator: one(allocator, {
-    fields: [allocatorRegistration.allocatorAddress],
-    references: [allocator.address],
-  }),
-}));
+export const allocatorRegistrationRelations = relations(
+  allocatorRegistration,
+  ({ one }) => ({
+    allocator: one(allocator, {
+      fields: [allocatorRegistration.allocatorAddress],
+      references: [allocator.address],
+    }),
+  })
+);
 
-export const depositedTokenRelations = relations(depositedToken, ({ many }) => ({
-  accountBalances: many(accountTokenBalance),
-  resourceLocks: many(resourceLock),
-}));
+export const depositedTokenRelations = relations(
+  depositedToken,
+  ({ many }) => ({
+    accountBalances: many(accountTokenBalance),
+    resourceLocks: many(resourceLock),
+  })
+);
 
-export const resourceLockRelations = relations(resourceLock, ({ one, many }) => ({
-  token: one(depositedToken, {
-    fields: [resourceLock.tokenAddress, resourceLock.chainId],
-    references: [depositedToken.tokenAddress, depositedToken.chainId],
-  }),
-  allocator: one(allocatorRegistration, {
-    fields: [resourceLock.allocatorAddress, resourceLock.chainId],
-    references: [allocatorRegistration.allocatorAddress, allocatorRegistration.chainId],
-  }),
-  accountBalances: many(accountResourceLockBalance),
-}));
+export const resourceLockRelations = relations(
+  resourceLock,
+  ({ one, many }) => ({
+    token: one(depositedToken, {
+      fields: [resourceLock.tokenAddress, resourceLock.chainId],
+      references: [depositedToken.tokenAddress, depositedToken.chainId],
+    }),
+    allocator: one(allocatorRegistration, {
+      fields: [resourceLock.allocatorAddress, resourceLock.chainId],
+      references: [
+        allocatorRegistration.allocatorAddress,
+        allocatorRegistration.chainId,
+      ],
+    }),
+    accountBalances: many(accountResourceLockBalance),
+  })
+);
 
-export const accountTokenBalanceRelations = relations(accountTokenBalance, ({ one, many }) => ({
-  account: one(account, {
-    fields: [accountTokenBalance.accountAddress],
-    references: [account.address],
-  }),
-  token: one(depositedToken, {
-    fields: [accountTokenBalance.tokenAddress, accountTokenBalance.chainId],
-    references: [depositedToken.tokenAddress, depositedToken.chainId],
-  }),
-  resourceLocks: many(accountResourceLockBalance),
-}));
+export const accountTokenBalanceRelations = relations(
+  accountTokenBalance,
+  ({ one, many }) => ({
+    account: one(account, {
+      fields: [accountTokenBalance.accountAddress],
+      references: [account.address],
+    }),
+    token: one(depositedToken, {
+      fields: [accountTokenBalance.tokenAddress, accountTokenBalance.chainId],
+      references: [depositedToken.tokenAddress, depositedToken.chainId],
+    }),
+    resourceLocks: many(accountResourceLockBalance),
+  })
+);
 
-export const accountResourceLockBalanceRelations = relations(accountResourceLockBalance, ({ one }) => ({
-  account: one(account, {
-    fields: [accountResourceLockBalance.accountAddress],
-    references: [account.address],
-  }),
-  resourceLock: one(resourceLock, {
-    fields: [accountResourceLockBalance.resourceLock, accountResourceLockBalance.chainId],
-    references: [resourceLock.lockId, resourceLock.chainId],
-  }),
-  tokenBalance: one(accountTokenBalance, {
-    fields: [accountResourceLockBalance.accountAddress, accountResourceLockBalance.tokenAddress, accountResourceLockBalance.chainId],
-    references: [accountTokenBalance.accountAddress, accountTokenBalance.tokenAddress, accountTokenBalance.chainId],
-  }),
-}));
+export const accountResourceLockBalanceRelations = relations(
+  accountResourceLockBalance,
+  ({ one }) => ({
+    account: one(account, {
+      fields: [accountResourceLockBalance.accountAddress],
+      references: [account.address],
+    }),
+    resourceLock: one(resourceLock, {
+      fields: [
+        accountResourceLockBalance.resourceLock,
+        accountResourceLockBalance.chainId,
+      ],
+      references: [resourceLock.lockId, resourceLock.chainId],
+    }),
+    tokenBalance: one(accountTokenBalance, {
+      fields: [
+        accountResourceLockBalance.accountAddress,
+        accountResourceLockBalance.tokenAddress,
+        accountResourceLockBalance.chainId,
+      ],
+      references: [
+        accountTokenBalance.accountAddress,
+        accountTokenBalance.tokenAddress,
+        accountTokenBalance.chainId,
+      ],
+    }),
+  })
+);
 
-export const registeredCompactRelations = relations(registeredCompact, ({ one }) => ({
-  sponsor: one(account, {
-    fields: [registeredCompact.sponsor],
-    references: [account.address],
-  }),
-  claim: one(claim, {
-    fields: [registeredCompact.claimHash, registeredCompact.chainId],
-    references: [claim.claimHash, claim.chainId],
-  }),
-}));
+export const registeredCompactRelations = relations(
+  registeredCompact,
+  ({ one }) => ({
+    sponsor: one(account, {
+      fields: [registeredCompact.sponsor],
+      references: [account.address],
+    }),
+    claim: one(claim, {
+      fields: [registeredCompact.claimHash, registeredCompact.chainId],
+      references: [claim.claimHash, claim.chainId],
+    }),
+  })
+);
