@@ -37,14 +37,22 @@ ponder.on("TheCompact:AllocatorRegistered", async ({ event, context }) => {
     allocatorAddress: allocator,
   });
 
+  await context.db
+    .insert(schema.allocator)
+    .values({
+      address: allocator,
+      firstSeenAt: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
   await context.db.insert(schema.allocatorRegistration).values({
     allocatorAddress: allocator,
     chainId,
     registeredAt: event.block.timestamp,
   });
 
-  await context.db.insert(schema.allocator).values({
-    address: allocator,
+  await context.db.insert(schema.allocatorChainId).values({
+    allocatorAddress: allocator,
     allocatorId: BigInt(allocatorId),
     chainId: BigInt(chainId),
     firstSeenAt: event.block.timestamp,

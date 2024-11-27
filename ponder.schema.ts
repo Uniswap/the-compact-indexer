@@ -8,15 +8,8 @@ export const account = onchainTable("account", (t) => ({
 export const allocator = onchainTable(
   "allocator",
   (t) => ({
-    address: t.hex().notNull(),
-    allocatorId: t.bigint().notNull(),
-    chainId: t.bigint().notNull(),
+    address: t.hex().primaryKey(),
     firstSeenAt: t.bigint().notNull(),
-  }),
-  (table) => ({
-    pk: primaryKey({ columns: [table.address, table.allocatorId, table.chainId] }),
-    allocatorAddressIdx: index().on(table.address),
-    chainIdIdx: index().on(table.chainId),
   })
 );
 
@@ -180,6 +173,21 @@ export const allocatorLookup = onchainTable(
   })
 );
 
+export const allocatorChainId = onchainTable(
+  "allocatorChainId",
+  (t) => ({
+    allocatorAddress: t.hex().notNull(),
+    allocatorId: t.bigint().notNull(),
+    chainId: t.bigint().notNull(),
+    firstSeenAt: t.bigint().notNull(),
+  }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.allocatorAddress, table.allocatorId, table.chainId] }),
+    allocatorAddressIdx: index().on(table.allocatorAddress),
+    chainIdIdx: index().on(table.chainId),
+  })
+);
+
 export const accountRelations = relations(account, ({ many }) => ({
   claims: many(claim),
   registeredCompacts: many(registeredCompact),
@@ -188,9 +196,16 @@ export const accountRelations = relations(account, ({ many }) => ({
 }));
 
 export const allocatorRelations = relations(allocator, ({ many }) => ({
-
+  supportedChains: many(allocatorChainId),
   registrations: many(allocatorRegistration),
   claims: many(claim),
+}));
+
+export const allocatorChainIdRelations = relations(allocatorChainId, ({ one }) => ({
+  parent: one(allocator, {
+    fields: [allocatorChainId.allocatorAddress],
+    references: [allocator.address],
+  }),
 }));
 
 export const claimRelations = relations(claim, ({ one }) => ({
@@ -199,8 +214,12 @@ export const claimRelations = relations(claim, ({ one }) => ({
     references: [account.address],
   }),
   allocator: one(allocator, {
+    fields: [claim.allocator],
+    references: [allocator.address],
+  }),
+  allocatorChainId: one(allocatorChainId, {
     fields: [claim.allocator, claim.chainId],
-    references: [allocator.address, allocator.chainId],
+    references: [allocatorChainId.allocatorAddress, allocatorChainId.chainId],
   }),
 }));
 
