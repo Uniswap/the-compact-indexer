@@ -109,17 +109,25 @@ export const accountResourceLockBalance = onchainTable(
   })
 );
 
-export const accountDelta = onchainTable("account_delta", (t) => ({
-  id: t.text().primaryKey(),
-  address: t.hex().notNull(),
-  counterparty: t.hex().notNull(),
-  tokenAddress: t.hex().notNull(),
-  resourceLock: t.bigint().notNull(),
-  chainId: t.bigint().notNull(),
-  delta: t.bigint().notNull(),
-  blockNumber: t.bigint().notNull(),
-  blockTimestamp: t.bigint().notNull(),
-}));
+export const accountDelta = onchainTable(
+  "account_delta",
+  (t) => ({
+    id: t.text().primaryKey(),
+    address: t.hex().notNull(),
+    counterparty: t.hex().notNull(),
+    tokenAddress: t.hex().notNull(),
+    resourceLock: t.bigint().notNull(),
+    chainId: t.bigint().notNull(),
+    delta: t.bigint().notNull(),
+    blockNumber: t.bigint().notNull(),
+    blockTimestamp: t.bigint().notNull(),
+  }),
+  (table) => ({
+    tokenRegIdx: index().on(table.tokenAddress, table.chainId),
+    resourceLockIdx: index().on(table.resourceLock, table.chainId),
+    addressIdx: index().on(table.address),
+  })
+);
 
 export const claim = onchainTable(
   "claim",
@@ -317,3 +325,18 @@ export const registeredCompactRelations = relations(
     }),
   })
 );
+
+export const accountDeltaRelations = relations(accountDelta, ({ one }) => ({
+  token: one(depositedToken, {
+    fields: [accountDelta.tokenAddress, accountDelta.chainId],
+    references: [depositedToken.tokenAddress, depositedToken.chainId],
+  }),
+  lock: one(resourceLock, {
+    fields: [accountDelta.resourceLock, accountDelta.chainId],
+    references: [resourceLock.lockId, resourceLock.chainId],
+  }),
+  account: one(account, {
+    fields: [accountDelta.address],
+    references: [account.address],
+  }),
+}));
