@@ -1,5 +1,5 @@
-import { ponder } from "@/generated";
-import { zeroAddress, erc20Abi } from "viem";
+import { Context, ponder } from "@/generated";
+import { zeroAddress, erc20Abi, Address } from "viem";
 import * as schema from "../ponder.schema";
 
 // Reset period values in seconds
@@ -19,11 +19,67 @@ enum Scope {
   ChainSpecific,
 }
 
-enum ForcedWithdrawalStatus {
-  Pending,
-  Enabled,
-  Disabled,
-}
+const insertTokenIfNotExists = async ({
+  address,
+  chainId,
+  timestamp,
+  context,
+}: {
+  address: Address;
+  chainId: bigint;
+  timestamp: bigint;
+  context: Context;
+}) => {
+  const existingToken = await context.db.find(schema.depositedToken, {
+    tokenAddress: address,
+    chainId,
+  });
+
+  if (existingToken) return existingToken;
+
+  if (address === zeroAddress) {
+    return await context.db.insert(schema.depositedToken).values({
+      tokenAddress: address,
+      chainId,
+      name: "Ether",
+      symbol: "ETH",
+      decimals: 18,
+      firstSeenAt: timestamp,
+      totalSupply: 0n,
+    });
+  } else {
+    const [nameResult, symbolResult, decimalsResult] =
+      await context.client.multicall({
+        contracts: [
+          {
+            abi: erc20Abi,
+            address,
+            functionName: "name",
+          },
+          {
+            abi: erc20Abi,
+            address,
+            functionName: "symbol",
+          },
+          {
+            abi: erc20Abi,
+            address,
+            functionName: "decimals",
+          },
+        ],
+      });
+
+    return await context.db.insert(schema.depositedToken).values({
+      tokenAddress: address,
+      chainId,
+      name: nameResult?.result ?? `Unknown Token (${address})`,
+      symbol: symbolResult?.result ?? "???",
+      decimals: decimalsResult.result ?? 18,
+      firstSeenAt: timestamp,
+      totalSupply: 0n,
+    });
+  }
+};
 
 // Unified event handlers for all networks
 ponder.on("TheCompact:AllocatorRegistered", async ({ event, context }) => {
@@ -89,63 +145,12 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
 
   const allocatorAddress = allocatorMapping!.allocatorAddress;
 
-  // Update token table
-  const existingToken = await context.db.find(schema.depositedToken, {
-    tokenAddress,
+  const existingToken = await insertTokenIfNotExists({
+    address: tokenAddress,
     chainId,
+    timestamp: event.block.timestamp,
+    context,
   });
-
-  let underlyingTokenDecimals;
-  if (!existingToken) {
-    let name;
-    let symbol;
-    let decimals;
-
-    if (tokenAddress === zeroAddress) {
-      name = "Ether";
-      symbol = "ETH";
-      decimals = 18;
-    } else {
-      const [nameResult, symbolResult, decimalsResult] =
-      await context.client.multicall({
-        contracts: [
-          {
-            abi: erc20Abi,
-            address: tokenAddress,
-            functionName: "name",
-          },
-          {
-            abi: erc20Abi,
-            address: tokenAddress,
-            functionName: "symbol",
-          },
-          {
-            abi: erc20Abi,
-            address: tokenAddress,
-            functionName: "decimals",
-          },
-        ],
-      });
-
-      name = nameResult?.result ?? `Unknown Token (${tokenAddress})`;
-      symbol = symbolResult?.result ?? "???";
-      decimals = decimalsResult?.result ?? 0; // maybe use 18??
-    }
-
-    underlyingTokenDecimals = decimals;
-
-    await context.db.insert(schema.depositedToken).values({
-      tokenAddress,
-      chainId,
-      name,
-      symbol,
-      decimals,
-      firstSeenAt: event.block.timestamp,
-      totalSupply: 0n,
-    });
-  } else {
-    underlyingTokenDecimals = existingToken.decimals;
-  }
 
   const existingLock = await context.db.find(schema.resourceLock, {
     lockId: id,
@@ -154,50 +159,25 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
 
   if (isMint) {
     await context.db
-      .update(schema.depositedToken, {tokenAddress, chainId})
+      .update(schema.depositedToken, { tokenAddress, chainId })
       .set((row) => ({
         totalSupply: row.totalSupply + transferAmount,
       }));
 
     if (!existingLock) {
-      const { TheCompact } = context.contracts;
-
-      // NOTE: decimals(id) on The Compact V0 has a bug where it always returns 0 :$
-      const [ nameResult, symbolResult ] = await context.client.multicall({
-        contracts: [
-          {
-            abi: TheCompact.abi,
-            address: TheCompact.address,
-            functionName: "name",
-            args: [id],
-          },
-          {
-            abi: TheCompact.abi,
-            address: TheCompact.address,
-            functionName: "symbol",
-            args: [id],
-          },
-        ]
+      await context.db.insert(schema.resourceLock).values({
+        lockId: id,
+        chainId,
+        tokenAddress,
+        allocatorAddress,
+        resetPeriod: BigInt(resetPeriod),
+        isMultichain: isMultichain,
+        mintedAt: event.block.timestamp,
+        totalSupply: transferAmount,
+        name: `Compact ${existingToken.name}`,
+        symbol: `🤝-${existingToken.symbol}`,
+        decimals: existingToken.decimals,
       });
-
-      const name = nameResult?.result ?? "Unknown Resource Lock";
-      const symbol = symbolResult?.result ?? "???";
-
-      await context.db
-        .insert(schema.resourceLock)
-        .values({
-          lockId: id,
-          chainId,
-          tokenAddress,
-          allocatorAddress,
-          resetPeriod: BigInt(resetPeriod),
-          isMultichain: isMultichain,
-          mintedAt: event.block.timestamp,
-          totalSupply: transferAmount,
-          name,
-          symbol,
-          decimals: underlyingTokenDecimals, // steal this from underlying
-        })
     } else {
       await context.db
         .update(schema.resourceLock, { lockId: id, chainId })
@@ -375,63 +355,19 @@ ponder.on(
 
     const allocatorId = (id >> 160n) & ((1n << 92n) - 1n);
 
-    // Update token table
-    const existingToken = await context.db.find(schema.depositedToken, {
-      tokenAddress,
+    const allocatorMapping = await context.db.find(schema.allocatorLookup, {
+      allocatorId,
       chainId,
     });
 
-    let underlyingTokenDecimals;
-    if (!existingToken) {
-      let name;
-      let symbol;
-      let decimals;
+    const allocatorAddress = allocatorMapping!.allocatorAddress;
 
-      if (tokenAddress === zeroAddress) {
-        name = "Ether";
-        symbol = "ETH";
-        decimals = 18;
-      } else {
-        const [nameResult, symbolResult, decimalsResult] =
-        await context.client.multicall({
-          contracts: [
-            {
-              abi: erc20Abi,
-              address: tokenAddress,
-              functionName: "name",
-            },
-            {
-              abi: erc20Abi,
-              address: tokenAddress,
-              functionName: "symbol",
-            },
-            {
-              abi: erc20Abi,
-              address: tokenAddress,
-              functionName: "decimals",
-            },
-          ],
-        });
-
-        name = nameResult?.result ?? `Unknown Token (${tokenAddress})`;
-        symbol = symbolResult?.result ?? "???";
-        decimals = decimalsResult?.result ?? 0; // maybe use 18??
-      }
-
-      underlyingTokenDecimals = decimals;
-
-      await context.db.insert(schema.depositedToken).values({
-        tokenAddress,
-        chainId,
-        name,
-        symbol,
-        decimals,
-        firstSeenAt: event.block.timestamp,
-        totalSupply: 0n,
-      });
-    } else {
-      underlyingTokenDecimals = existingToken.decimals;
-    }
+    const existingToken = await insertTokenIfNotExists({
+      address: tokenAddress,
+      chainId,
+      timestamp: event.block.timestamp,
+      context,
+    });
 
     const existingLock = await context.db.find(schema.resourceLock, {
       lockId: id,
@@ -439,44 +375,19 @@ ponder.on(
     });
 
     if (!existingLock) {
-      const { TheCompact } = context.contracts;
-
-      // NOTE: decimals(id) on The Compact V0 has a bug where it always returns 0 :$
-      const [ nameResult, symbolResult ] = await context.client.multicall({
-        contracts: [
-          {
-            abi: TheCompact.abi,
-            address: TheCompact.address,
-            functionName: "name",
-            args: [id],
-          },
-          {
-            abi: TheCompact.abi,
-            address: TheCompact.address,
-            functionName: "symbol",
-            args: [id],
-          },
-        ]
+      await context.db.insert(schema.resourceLock).values({
+        lockId: id,
+        chainId,
+        tokenAddress,
+        allocatorAddress,
+        resetPeriod: BigInt(resetPeriod),
+        isMultichain: isMultichain,
+        mintedAt: event.block.timestamp,
+        totalSupply: 0n,
+        name: `Compact ${existingToken.name}`,
+        symbol: `🤝-${existingToken.symbol}`,
+        decimals: existingToken.decimals,
       });
-
-      const name = nameResult?.result ?? "Unknown Resource Lock";
-      const symbol = symbolResult?.result ?? "???";
-
-      await context.db
-        .insert(schema.resourceLock)
-        .values({
-          lockId: id,
-          chainId,
-          tokenAddress,
-          allocatorAddress,
-          resetPeriod: BigInt(resetPeriod),
-          isMultichain: isMultichain,
-          mintedAt: event.block.timestamp,
-          totalSupply: transferAmount,
-          name,
-          symbol,
-          decimals: underlyingTokenDecimals, // steal this from underlying
-        });
     }
 
     // Get the balance record
@@ -490,9 +401,7 @@ ponder.on(
     );
 
     if (!existingBalance) {
-      await context.db
-      .insert(schema.accountResourceLockBalance)
-      .values({
+      await context.db.insert(schema.accountResourceLockBalance).values({
         accountAddress,
         resourceLock: id,
         chainId,
@@ -519,7 +428,7 @@ ponder.on(
         withdrawableAt: withdrawableAtBigInt,
         lastUpdatedAt: timestamp,
       });
-    }
+  }
 );
 
 ponder.on("TheCompact:Claim", async ({ event, context }) => {
@@ -558,7 +467,6 @@ ponder.on("TheCompact:Claim", async ({ event, context }) => {
   });
 });
 
-// Other events that we'll implement later
 ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
   const { sponsor, claimHash, typehash, expires } = event.args;
   const chainId = BigInt(context.network.chainId);
@@ -586,25 +494,9 @@ ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
 
 // Other events that we'll implement later
 ponder.on("TheCompact:Approval", async ({ event, context }) => {
-  console.log(`Approval event on ${context.network.name}:`, {
-    ...event,
-    args: event.args,
-    block: event.block,
-    address: event.log.address,
-    eventName: event.eventName,
-    source: event.source,
-    name: event.name,
-  });
+  console.log(`Approval event on ${context.network.name}:`, event);
 });
 
 ponder.on("TheCompact:OperatorSet", async ({ event, context }) => {
-  console.log(`OperatorSet event on ${context.network.name}:`, {
-    ...event,
-    args: event.args,
-    block: event.block,
-    address: event.log.address,
-    eventName: event.eventName,
-    source: event.source,
-    name: event.name,
-  });
+  console.log(`OperatorSet event on ${context.network.name}:`, event);
 });
