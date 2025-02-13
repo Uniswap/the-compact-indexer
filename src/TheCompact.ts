@@ -1,6 +1,6 @@
-import { Context, ponder } from "@/generated";
+import { Context, ponder } from "ponder:registry";
 import { zeroAddress, erc20Abi, Address } from "viem";
-import * as schema from "../ponder.schema";
+import schema from "ponder:schema"
 
 // Reset period values in seconds
 const ResetPeriod = {
