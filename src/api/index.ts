@@ -1,16 +1,18 @@
-import { ponder } from "@/generated";
-import * as schema from "../../ponder.schema";
-import { and, eq, graphql, replaceBigInts } from "@ponder/core";
+import { Hono } from "hono";
+import schema from "ponder:schema";
+import { db } from "ponder:api";
+import { and, eq, graphql, replaceBigInts } from "ponder";
 import { formatEther } from "viem";
 
-ponder.use("/", graphql());
-ponder.use("/graphql", graphql());
+const app = new Hono();
 
-ponder.get("/resource-locks/:chainId/:lockId", async (c) => {
+app.use("/", graphql({ db , schema }));
+  
+app.get("/resource-locks/:chainId/:lockId", async (c) => {
   const chainId = BigInt(c.req.param("chainId"));
   const lockId = BigInt(c.req.param("lockId"));
 
-  const result = await c.db
+  const result = await db
     .select()
     .from(schema.resourceLock)
     .where(
@@ -36,3 +38,5 @@ ponder.get("/resource-locks/:chainId/:lockId", async (c) => {
   if (result.length === 0) return c.text("Not found", 500);
   return c.json(replaceBigInts(result, (b) => formatEther(b)));
 });
+
+export default app;

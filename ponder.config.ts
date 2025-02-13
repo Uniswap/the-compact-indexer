@@ -1,9 +1,10 @@
-import { createConfig } from "@ponder/core";
+import { createConfig } from "ponder";
 import { http } from "viem";
 
 import { TheCompactAbi } from "./abis/TheCompactAbi";
 
 export default createConfig({
+  ordering: "multichain",
   networks: {
     mainnet: { chainId: 1, transport: http(process.env.PONDER_RPC_URL_1) },
     sepolia: { chainId: 11155111, transport: http(process.env.PONDER_RPC_URL_11155111) },
@@ -11,6 +12,7 @@ export default createConfig({
     baseSepolia: { chainId: 84532, transport: http(process.env.PONDER_RPC_URL_84532) },
     optimism: { chainId: 10, transport: http(process.env.PONDER_RPC_URL_10) },
     optimismSepolia: { chainId: 11155420, transport: http(process.env.PONDER_RPC_URL_11155420) },
+    unichain: { chainId: 130, transport: http(process.env.PONDER_RPC_URL_130) },
     unichainSepolia: { chainId: 1301, transport: http(process.env.PONDER_RPC_URL_1301) },
   },
   contracts: {
@@ -24,6 +26,7 @@ export default createConfig({
         baseSepolia: { startBlock: 17541891 },
         optimism: { startBlock: 127708222 },
         optimismSepolia: { startBlock: 19606376 },
+        unichain: { startBlock: 8624343 },
         unichainSepolia: { startBlock: 3999509 },
       },
     },
