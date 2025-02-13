@@ -12,8 +12,8 @@ export default createConfig({
     baseSepolia: { chainId: 84532, transport: http(process.env.PONDER_RPC_URL_84532) },
     optimism: { chainId: 10, transport: http(process.env.PONDER_RPC_URL_10) },
     optimismSepolia: { chainId: 11155420, transport: http(process.env.PONDER_RPC_URL_11155420) },
-    unichain: { chainId: 1301, transport: http(process.env.PONDER_RPC_URL_1301) },
-    unichainSepolia: { chainId: 13012, transport: http(process.env.PONDER_RPC_URL_13012) },
+    unichain: { chainId: 130, transport: http(process.env.PONDER_RPC_URL_130) },
+    unichainSepolia: { chainId: 1301, transport: http(process.env.PONDER_RPC_URL_1301) },
   },
   contracts: {
     TheCompact: {
