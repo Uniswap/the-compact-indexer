@@ -6,7 +6,9 @@ import { formatEther } from "viem";
 
 const app = new Hono();
 
-app.use("/", graphql({ db , schema }));
+app.use("/", graphql({ db, schema }));
+app.use("/graphql", graphql({ db, schema }));
+
   
 app.get("/resource-locks/:chainId/:lockId", async (c) => {
   const chainId = BigInt(c.req.param("chainId"));
