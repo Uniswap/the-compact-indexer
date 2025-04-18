@@ -12,8 +12,8 @@ importers:
         specifier: ^4.5.0
         version: 4.6.11
       ponder:
-        specifier: ^0.9.27
-        version: 0.9.27(@opentelemetry/api@1.9.0)(@types/node@20.17.6)(hono@4.6.11)(typescript@5.6.3)(viem@2.23.2(typescript@5.6.3))
+        specifier: ^0.10.16
+        version: 0.10.16(@opentelemetry/api@1.9.0)(@types/node@20.17.6)(hono@4.6.11)(typescript@5.6.3)(viem@2.23.2(typescript@5.6.3))
       viem:
         specifier: ^2.23.2
         version: 2.23.2(typescript@5.6.3)
@@ -744,8 +744,8 @@ packages:
     resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
     engines: {node: '>=12'}
 
-  drizzle-orm@0.39.3:
-    resolution: {integrity: sha512-EZ8ZpYvDIvKU9C56JYLOmUskazhad+uXZCTCRN4OnRMsL+xAJ05dv1eCpAG5xzhsm1hqiuC5kAZUCS924u2DTw==}
+  drizzle-orm@0.41.0:
+    resolution: {integrity: sha512-7A4ZxhHk9gdlXmTdPj/lREtP+3u8KvZ4yEN6MYVxBzZGex5Wtdc+CWSbu7btgF6TB0N+MNPrvW7RKBbxJchs/Q==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -766,6 +766,7 @@ packages:
       better-sqlite3: '>=7'
       bun-types: '*'
       expo-sqlite: '>=14.0.0'
+      gel: '>=2'
       knex: '*'
       kysely: '*'
       mysql2: '>=2'
@@ -812,6 +813,8 @@ packages:
       bun-types:
         optional: true
       expo-sqlite:
+        optional: true
+      gel:
         optional: true
       knex:
         optional: true
@@ -1320,8 +1323,8 @@ packages:
     resolution: {integrity: sha512-ip4qdzjkAyDDZklUaZkcRFb2iA118H9SgRh8yzTkSQK8HilsOJF7rSY8HoW5+I0M46AZgX/pxbprf2vvzQCE0Q==}
     hasBin: true
 
-  ponder@0.9.27:
-    resolution: {integrity: sha512-2lP1TqTrISyvdqPj+8HM5Ykxd4EzoYoEAyav+ImYTZrKv+o9ltZ32c3gg4SA569BGqxvPYroduoG/SvSwvJmbw==}
+  ponder@0.10.16:
+    resolution: {integrity: sha512-4gHxI1YSvEdgRrypgAKOKTLA5LcG7MfrkUjQBJIhTaAnRnOoEvC4MIKNgvK/+h2HLddxf8eDgJIYDdjghcpl+Q==}
     engines: {node: '>=18.14'}
     hasBin: true
     peerDependencies:
@@ -2303,7 +2306,7 @@ snapshots:
 
   dotenv@16.4.7: {}
 
-  drizzle-orm@0.39.3(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(kysely@0.26.3)(pg@8.13.3):
+  drizzle-orm@0.41.0(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(kysely@0.26.3)(pg@8.13.3):
     optionalDependencies:
       '@electric-sql/pglite': 0.2.13
       '@opentelemetry/api': 1.9.0
@@ -2832,7 +2835,7 @@ snapshots:
       sonic-boom: 3.8.1
       thread-stream: 2.7.0
 
-  ponder@0.9.27(@opentelemetry/api@1.9.0)(@types/node@20.17.6)(hono@4.6.11)(typescript@5.6.3)(viem@2.23.2(typescript@5.6.3)):
+  ponder@0.10.16(@opentelemetry/api@1.9.0)(@types/node@20.17.6)(hono@4.6.11)(typescript@5.6.3)(viem@2.23.2(typescript@5.6.3)):
     dependencies:
       '@babel/code-frame': 7.26.2
       '@commander-js/extra-typings': 12.1.0(commander@12.1.0)
@@ -2849,7 +2852,7 @@ snapshots:
       dataloader: 2.2.3
       detect-package-manager: 3.0.2
       dotenv: 16.4.7
-      drizzle-orm: 0.39.3(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(kysely@0.26.3)(pg@8.13.3)
+      drizzle-orm: 0.41.0(@electric-sql/pglite@0.2.13)(@opentelemetry/api@1.9.0)(kysely@0.26.3)(pg@8.13.3)
       glob: 10.4.5
       graphql: 16.10.0
       graphql-yoga: 5.13.0(graphql@16.10.0)
@@ -2893,6 +2896,7 @@ snapshots:
       - better-sqlite3
       - bun-types
       - expo-sqlite
+      - gel
       - knex
       - less
       - lightningcss
