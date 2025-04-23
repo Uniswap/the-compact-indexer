@@ -257,7 +257,7 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
 
     // Insert delta
     await context.db.insert(schema.accountDelta).values({
-      id: `${event.log.id}-from`,
+      id: `${event.id}-from`,
       address: from,
       counterparty: to,
       tokenAddress,
@@ -316,7 +316,7 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
 
     // Insert delta
     await context.db.insert(schema.accountDelta).values({
-      id: `${event.log.id}-to`,
+      id: `${event.id}-to`,
       address: to,
       counterparty: from,
       tokenAddress,
