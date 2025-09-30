@@ -492,6 +492,66 @@ ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
   });
 });
 
+// Handle EmissaryAssigned event
+ponder.on("TheCompact:EmissaryAssigned", async ({ event, context }) => {
+  const { sponsor, lockTag, emissary } = event.args;
+  const chainId = BigInt(context.network.chainId);
+
+  // Ensure sponsor account exists
+  await context.db
+    .insert(schema.account)
+    .values({
+      address: sponsor,
+      firstSeenAt: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
+  // Ensure emissary account exists
+  await context.db
+    .insert(schema.account)
+    .values({
+      address: emissary,
+      firstSeenAt: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
+  console.log(`EmissaryAssigned event on ${context.network.name}:`, event);
+});
+
+// Handle EmissaryAssignmentScheduled event
+ponder.on("TheCompact:EmissaryAssignmentScheduled", async ({ event, context }) => {
+  const { sponsor, lockTag, assignableAt } = event.args;
+  const chainId = BigInt(context.network.chainId);
+
+  // Ensure sponsor account exists
+  await context.db
+    .insert(schema.account)
+    .values({
+      address: sponsor,
+      firstSeenAt: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
+  console.log(`EmissaryAssignmentScheduled event on ${context.network.name}:`, event);
+});
+
+// Handle NonceConsumedDirectly event
+ponder.on("TheCompact:NonceConsumedDirectly", async ({ event, context }) => {
+  const { allocator, nonce } = event.args;
+  const chainId = BigInt(context.network.chainId);
+
+  // Ensure allocator account exists
+  await context.db
+    .insert(schema.account)
+    .values({
+      address: allocator,
+      firstSeenAt: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
+  console.log(`NonceConsumedDirectly event on ${context.network.name}:`, event);
+});
+
 // Other events that we'll implement later
 ponder.on("TheCompact:Approval", async ({ event, context }) => {
   console.log(`Approval event on ${context.network.name}:`, event);

@@ -5,7 +5,7 @@ export const TheCompactAbi = [
     "inputs": [],
     "outputs": [
       {
-        "name": "domainSeparator",
+        "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
       }
@@ -14,10 +14,17 @@ export const TheCompactAbi = [
   },
   {
     "type": "function",
+    "name": "__activateTstore",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "__benchmark",
     "inputs": [
       {
-        "name": "salt",
+        "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
       }
@@ -42,7 +49,7 @@ export const TheCompactAbi = [
     ],
     "outputs": [
       {
-        "name": "allocatorId",
+        "name": "",
         "type": "uint96",
         "internalType": "uint96"
       }
@@ -174,6 +181,64 @@ export const TheCompactAbi = [
   },
   {
     "type": "function",
+    "name": "allowance",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "approve",
+    "inputs": [
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
     "name": "assignEmissary",
     "inputs": [
       {
@@ -192,6 +257,120 @@ export const TheCompactAbi = [
         "name": "",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "balanceOf",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "batchClaim",
+    "inputs": [
+      {
+        "name": "claimPayload",
+        "type": "tuple",
+        "internalType": "struct BatchClaim",
+        "components": [
+          {
+            "name": "allocatorData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsorSignature",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "nonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "expires",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "witness",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "witnessTypestring",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "claims",
+            "type": "tuple[]",
+            "internalType": "struct BatchClaimComponent[]",
+            "components": [
+              {
+                "name": "id",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "allocatedAmount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "portions",
+                "type": "tuple[]",
+                "internalType": "struct Component[]",
+                "components": [
+                  {
+                    "name": "claimant",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "nonpayable"
@@ -325,7 +504,7 @@ export const TheCompactAbi = [
         ]
       },
       {
-        "name": "details",
+        "name": "",
         "type": "tuple",
         "internalType": "struct DepositDetails",
         "components": [
@@ -347,12 +526,12 @@ export const TheCompactAbi = [
         ]
       },
       {
-        "name": "claimHash",
+        "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "compactCategory",
+        "name": "",
         "type": "uint8",
         "internalType": "enum CompactCategory"
       },
@@ -369,7 +548,7 @@ export const TheCompactAbi = [
     ],
     "outputs": [
       {
-        "name": "ids",
+        "name": "",
         "type": "uint256[]",
         "internalType": "uint256[]"
       }
@@ -381,7 +560,7 @@ export const TheCompactAbi = [
     "name": "batchDepositViaPermit2",
     "inputs": [
       {
-        "name": "depositor",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
@@ -403,7 +582,7 @@ export const TheCompactAbi = [
         ]
       },
       {
-        "name": "details",
+        "name": "",
         "type": "tuple",
         "internalType": "struct DepositDetails",
         "components": [
@@ -437,12 +616,190 @@ export const TheCompactAbi = [
     ],
     "outputs": [
       {
-        "name": "ids",
+        "name": "",
         "type": "uint256[]",
         "internalType": "uint256[]"
       }
     ],
     "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "batchMultichainClaim",
+    "inputs": [
+      {
+        "name": "claimPayload",
+        "type": "tuple",
+        "internalType": "struct BatchMultichainClaim",
+        "components": [
+          {
+            "name": "allocatorData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsorSignature",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "nonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "expires",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "witness",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "witnessTypestring",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "claims",
+            "type": "tuple[]",
+            "internalType": "struct BatchClaimComponent[]",
+            "components": [
+              {
+                "name": "id",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "allocatedAmount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "portions",
+                "type": "tuple[]",
+                "internalType": "struct Component[]",
+                "components": [
+                  {
+                    "name": "claimant",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "additionalChains",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claim",
+    "inputs": [
+      {
+        "name": "claimPayload",
+        "type": "tuple",
+        "internalType": "struct Claim",
+        "components": [
+          {
+            "name": "allocatorData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsorSignature",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "nonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "expires",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "witness",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "witnessTypestring",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "id",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "allocatedAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "claimants",
+            "type": "tuple[]",
+            "internalType": "struct Component[]",
+            "components": [
+              {
+                "name": "claimant",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -462,6 +819,25 @@ export const TheCompactAbi = [
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "decimals",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -649,7 +1025,7 @@ export const TheCompactAbi = [
         "internalType": "address"
       },
       {
-        "name": "lockTag",
+        "name": "",
         "type": "bytes12",
         "internalType": "bytes12"
       },
@@ -659,7 +1035,7 @@ export const TheCompactAbi = [
         "internalType": "bytes32"
       },
       {
-        "name": "compactCategory",
+        "name": "",
         "type": "uint8",
         "internalType": "enum CompactCategory"
       },
@@ -676,7 +1052,7 @@ export const TheCompactAbi = [
     ],
     "outputs": [
       {
-        "name": "id",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -722,12 +1098,12 @@ export const TheCompactAbi = [
         ]
       },
       {
-        "name": "depositor",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "lockTag",
+        "name": "",
         "type": "bytes12",
         "internalType": "bytes12"
       },
@@ -744,7 +1120,7 @@ export const TheCompactAbi = [
     ],
     "outputs": [
       {
-        "name": "id",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -768,7 +1144,7 @@ export const TheCompactAbi = [
     ],
     "outputs": [
       {
-        "name": "id",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -889,12 +1265,272 @@ export const TheCompactAbi = [
     ],
     "outputs": [
       {
-        "name": "withdrawableAt",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "exogenousBatchClaim",
+    "inputs": [
+      {
+        "name": "claimPayload",
+        "type": "tuple",
+        "internalType": "struct ExogenousBatchMultichainClaim",
+        "components": [
+          {
+            "name": "allocatorData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsorSignature",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "nonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "expires",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "witness",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "witnessTypestring",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "claims",
+            "type": "tuple[]",
+            "internalType": "struct BatchClaimComponent[]",
+            "components": [
+              {
+                "name": "id",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "allocatedAmount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "portions",
+                "type": "tuple[]",
+                "internalType": "struct Component[]",
+                "components": [
+                  {
+                    "name": "claimant",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "additionalChains",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          {
+            "name": "chainIndex",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "notarizedChainId",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "exogenousClaim",
+    "inputs": [
+      {
+        "name": "claimPayload",
+        "type": "tuple",
+        "internalType": "struct ExogenousMultichainClaim",
+        "components": [
+          {
+            "name": "allocatorData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsorSignature",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "nonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "expires",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "witness",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "witnessTypestring",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "id",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "allocatedAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "claimants",
+            "type": "tuple[]",
+            "internalType": "struct Component[]",
+            "components": [
+              {
+                "name": "claimant",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "additionalChains",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          {
+            "name": "chainIndex",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "notarizedChainId",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "extsload",
+    "inputs": [
+      {
+        "name": "slot",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "extsload",
+    "inputs": [
+      {
+        "name": "slots",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "exttload",
+    "inputs": [
+      {
+        "name": "slot",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -976,12 +1612,12 @@ export const TheCompactAbi = [
     ],
     "outputs": [
       {
-        "name": "status",
+        "name": "",
         "type": "uint8",
         "internalType": "enum ForcedWithdrawalStatus"
       },
       {
-        "name": "forcedWithdrawalAvailableAt",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1000,27 +1636,27 @@ export const TheCompactAbi = [
     ],
     "outputs": [
       {
-        "name": "token",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "allocator",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "resetPeriod",
+        "name": "",
         "type": "uint8",
         "internalType": "enum ResetPeriod"
       },
       {
-        "name": "scope",
+        "name": "",
         "type": "uint8",
         "internalType": "enum Scope"
       },
       {
-        "name": "lockTag",
+        "name": "",
         "type": "bytes12",
         "internalType": "bytes12"
       }
@@ -1062,7 +1698,31 @@ export const TheCompactAbi = [
     ],
     "outputs": [
       {
-        "name": "consumed",
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isOperator",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "status",
         "type": "bool",
         "internalType": "bool"
       }
@@ -1094,6 +1754,113 @@ export const TheCompactAbi = [
         "name": "isActive",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "multichainClaim",
+    "inputs": [
+      {
+        "name": "claimPayload",
+        "type": "tuple",
+        "internalType": "struct MultichainClaim",
+        "components": [
+          {
+            "name": "allocatorData",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsorSignature",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "sponsor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "nonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "expires",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "witness",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "witnessTypestring",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "id",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "allocatedAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "claimants",
+            "type": "tuple[]",
+            "internalType": "struct Component[]",
+            "components": [
+              {
+                "name": "claimant",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "additionalChains",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "name",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"
@@ -1145,7 +1912,7 @@ export const TheCompactAbi = [
         "internalType": "bytes32"
       },
       {
-        "name": "arbiter",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
@@ -1155,22 +1922,22 @@ export const TheCompactAbi = [
         "internalType": "address"
       },
       {
-        "name": "nonce",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "expires",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "idsAndAmountsHash",
+        "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "witness",
+        "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
       },
@@ -1199,7 +1966,7 @@ export const TheCompactAbi = [
         "internalType": "bytes32"
       },
       {
-        "name": "arbiter",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
@@ -1209,32 +1976,32 @@ export const TheCompactAbi = [
         "internalType": "address"
       },
       {
-        "name": "nonce",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "expires",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "lockTag",
+        "name": "",
         "type": "bytes12",
         "internalType": "bytes12"
       },
       {
-        "name": "token",
+        "name": "",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "amount",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "witness",
+        "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
       },
@@ -1268,17 +2035,17 @@ export const TheCompactAbi = [
         "internalType": "address"
       },
       {
-        "name": "nonce",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "expires",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "elementsHash",
+        "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
       },
@@ -1341,6 +2108,150 @@ export const TheCompactAbi = [
     "stateMutability": "nonpayable"
   },
   {
+    "type": "function",
+    "name": "setOperator",
+    "inputs": [
+      {
+        "name": "operator",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "approved",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "supportsInterface",
+    "inputs": [
+      {
+        "name": "interfaceId",
+        "type": "bytes4",
+        "internalType": "bytes4"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "result",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "symbol",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "tokenURI",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "transfer",
+    "inputs": [
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "transferFrom",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
     "type": "event",
     "name": "AllocatorRegistered",
     "inputs": [
@@ -1355,6 +2266,37 @@ export const TheCompactAbi = [
         "type": "address",
         "indexed": false,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Approval",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "spender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -1522,6 +2464,68 @@ export const TheCompactAbi = [
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "OperatorSet",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "operator",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "approved",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Transfer",
+    "inputs": [
+      {
+        "name": "by",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "AllocatedAmountExceeded",
     "inputs": [
@@ -1536,6 +2540,11 @@ export const TheCompactAbi = [
         "internalType": "uint256"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "BalanceOverflow",
+    "inputs": []
   },
   {
     "type": "error",
@@ -1588,6 +2597,16 @@ export const TheCompactAbi = [
   {
     "type": "error",
     "name": "InconsistentAllocators",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientBalance",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientPermission",
     "inputs": []
   },
   {
@@ -1671,6 +2690,11 @@ export const TheCompactAbi = [
   },
   {
     "type": "error",
+    "name": "NoIdsAndAmountsProvided",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "Permit2CallFailed",
     "inputs": []
   },
@@ -1695,6 +2719,21 @@ export const TheCompactAbi = [
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "TStoreAlreadyActivated",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TStoreNotSupported",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TloadTestContractDeploymentFailed",
+    "inputs": []
   },
   {
     "type": "error",
