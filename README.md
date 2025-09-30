@@ -27,7 +27,7 @@ This indexer tracks events from The Compact contract across multiple networks:
   - OperatorSet
   - Approval
 
-A public instance of this indexer is available at [https://the-compact-indexer-2.ponder-dev.com/](https://the-compact-indexer-2.ponder-dev.com/).
+A public instance of this indexer is available at [https://the-compact-indexer.marble.live](https://the-compact-indexer.marble.live).
 
 ## Installation
 
