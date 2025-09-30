@@ -1,9 +1,10 @@
-import { createConfig } from "@ponder/core";
+import { createConfig } from "ponder";
 import { http } from "viem";
 
 import { TheCompactAbi } from "./abis/TheCompactAbi";
 
 export default createConfig({
+  ordering: "multichain",
   networks: {
     mainnet: { chainId: 1, transport: http(process.env.PONDER_RPC_URL_1) },
     sepolia: { chainId: 11155111, transport: http(process.env.PONDER_RPC_URL_11155111) },

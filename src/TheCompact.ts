@@ -1,6 +1,6 @@
-import { Context, ponder } from "@/generated";
+import { Context, ponder } from "ponder:registry";
 import { zeroAddress, erc20Abi, Address } from "viem";
-import * as schema from "../ponder.schema";
+import schema from "ponder:schema"
 
 // Reset period values in seconds
 const ResetPeriod = {
@@ -257,7 +257,7 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
 
     // Insert delta
     await context.db.insert(schema.accountDelta).values({
-      id: `${event.log.id}-from`,
+      id: `${event.id}-from`,
       address: from,
       counterparty: to,
       tokenAddress,
@@ -316,7 +316,7 @@ ponder.on("TheCompact:Transfer", async ({ event, context }) => {
 
     // Insert delta
     await context.db.insert(schema.accountDelta).values({
-      id: `${event.log.id}-to`,
+      id: `${event.id}-to`,
       address: to,
       counterparty: from,
       tokenAddress,

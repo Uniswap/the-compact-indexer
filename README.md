@@ -11,6 +11,7 @@ This indexer tracks events from The Compact contract across multiple networks:
 - Base Sepolia
 - Optimism
 - Optimism Sepolia
+- Unichain
 - Unichain Sepolia
 
 ## Events Tracked
@@ -26,6 +27,8 @@ This indexer tracks events from The Compact contract across multiple networks:
   - OperatorSet
   - Approval
 
+A public instance of this indexer is available at [https://the-compact-indexer-2.ponder-dev.com/](https://the-compact-indexer-2.ponder-dev.com/).
+
 ## Installation
 
 Create a `.env.local` file with RPC URLs for each network:
@@ -36,6 +39,7 @@ PONDER_RPC_URL_8453=        # Base
 PONDER_RPC_URL_84532=       # Base Sepolia
 PONDER_RPC_URL_10=          # Optimism
 PONDER_RPC_URL_11155420=    # Optimism Sepolia
+PONDER_RPC_URL_130=         # Unichain
 PONDER_RPC_URL_1301=        # Unichain Sepolia
 ```
 
