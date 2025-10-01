@@ -137,6 +137,7 @@ export const claim = onchainTable(
     sponsor: t.hex().notNull(),
     allocator: t.hex().notNull(),
     arbiter: t.hex().notNull(),
+    nonce: t.bigint().notNull(),
     timestamp: t.bigint().notNull(),
     blockNumber: t.bigint().notNull(),
   }),
@@ -158,7 +159,6 @@ export const registeredCompact = onchainTable(
     sponsor: t.hex().notNull(),
     timestamp: t.bigint().notNull(),
     blockNumber: t.bigint().notNull(),
-    expires: t.bigint().notNull(),
     typehash: t.hex().notNull(), // Added typehash field from CompactRegistered event
   }),
   (table) => ({
@@ -197,6 +197,24 @@ export const allocatorChainId = onchainTable(
   })
 );
 
+export const consumedNonce = onchainTable(
+  "consumed_nonce",
+  (t) => ({
+    allocator: t.hex().notNull(),
+    nonce: t.bigint().notNull(),
+    chainId: t.bigint().notNull(),
+    claimHash: t.hex(), // Only set if consumed via claim
+    timestamp: t.bigint().notNull(),
+    blockNumber: t.bigint().notNull(),
+  }),
+  (table) => ({
+    pk: primaryKey({ columns: [table.allocator, table.nonce, table.chainId] }),
+    allocatorIdx: index().on(table.allocator),
+    chainIdIdx: index().on(table.chainId),
+    claimHashIdx: index().on(table.claimHash),
+  })
+);
+
 export const accountRelations = relations(account, ({ many }) => ({
   claims: many(claim),
   registeredCompacts: many(registeredCompact),
@@ -208,6 +226,7 @@ export const allocatorRelations = relations(allocator, ({ many }) => ({
   supportedChains: many(allocatorChainId),
   registrations: many(allocatorRegistration),
   claims: many(claim),
+  consumedNonces: many(consumedNonce),
 }));
 
 export const allocatorChainIdRelations = relations(allocatorChainId, ({ one }) => ({
@@ -338,5 +357,16 @@ export const accountDeltaRelations = relations(accountDelta, ({ one }) => ({
   account: one(account, {
     fields: [accountDelta.address],
     references: [account.address],
+  }),
+}));
+
+export const consumedNonceRelations = relations(consumedNonce, ({ one }) => ({
+  allocatorAccount: one(allocator, {
+    fields: [consumedNonce.allocator],
+    references: [allocator.address],
+  }),
+  claimDetails: one(claim, {
+    fields: [consumedNonce.claimHash, consumedNonce.chainId],
+    references: [claim.claimHash, claim.chainId],
   }),
 }));

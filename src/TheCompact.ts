@@ -432,7 +432,7 @@ ponder.on(
 );
 
 ponder.on("TheCompact:Claim", async ({ event, context }) => {
-  const { sponsor, allocator, arbiter, claimHash } = event.args;
+  const { sponsor, allocator, arbiter, claimHash, nonce } = event.args;
   const chainId = BigInt(context.network.chainId);
 
   // Ensure sponsor account exists
@@ -453,22 +453,31 @@ ponder.on("TheCompact:Claim", async ({ event, context }) => {
     })
     .onConflictDoNothing();
 
-  // Create claim record
-
-  // NOTE: Do we need allocatorId?
+  // Create claim record with nonce
   await context.db.insert(schema.claim).values({
     claimHash,
     chainId,
     sponsor,
     allocator,
     arbiter,
+    nonce: BigInt(nonce),
+    timestamp: event.block.timestamp,
+    blockNumber: event.block.number,
+  });
+
+  // Track nonce consumption (consumed via claim)
+  await context.db.insert(schema.consumedNonce).values({
+    allocator,
+    nonce: BigInt(nonce),
+    chainId,
+    claimHash, // Set because this was consumed via claim
     timestamp: event.block.timestamp,
     blockNumber: event.block.number,
   });
 });
 
 ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
-  const { sponsor, claimHash, typehash, expires } = event.args;
+  const { sponsor, claimHash, typehash } = event.args;
   const chainId = BigInt(context.network.chainId);
 
   // Ensure sponsor account exists
@@ -487,9 +496,76 @@ ponder.on("TheCompact:CompactRegistered", async ({ event, context }) => {
     sponsor,
     timestamp: event.block.timestamp,
     blockNumber: event.block.number,
-    expires: BigInt(expires),
     typehash,
   });
+});
+
+// Handle EmissaryAssigned event
+ponder.on("TheCompact:EmissaryAssigned", async ({ event, context }) => {
+  const { sponsor, lockTag, emissary } = event.args;
+  const chainId = BigInt(context.network.chainId);
+
+  // Ensure sponsor account exists
+  await context.db
+    .insert(schema.account)
+    .values({
+      address: sponsor,
+      firstSeenAt: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
+  // Ensure emissary account exists
+  await context.db
+    .insert(schema.account)
+    .values({
+      address: emissary,
+      firstSeenAt: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
+  console.log(`EmissaryAssigned event on ${context.network.name}:`, event);
+});
+
+// Handle EmissaryAssignmentScheduled event
+ponder.on("TheCompact:EmissaryAssignmentScheduled", async ({ event, context }) => {
+  const { sponsor, lockTag, assignableAt } = event.args;
+  const chainId = BigInt(context.network.chainId);
+
+  // Ensure sponsor account exists
+  await context.db
+    .insert(schema.account)
+    .values({
+      address: sponsor,
+      firstSeenAt: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
+  console.log(`EmissaryAssignmentScheduled event on ${context.network.name}:`, event);
+});
+
+// Handle NonceConsumedDirectly event
+ponder.on("TheCompact:NonceConsumedDirectly", async ({ event, context }) => {
+  const { allocator, nonce } = event.args;
+  const chainId = BigInt(context.network.chainId);
+
+  // Ensure allocator account exists
+  await context.db
+    .insert(schema.account)
+    .values({
+      address: allocator,
+      firstSeenAt: event.block.timestamp,
+    })
+    .onConflictDoNothing();
+
+  // Track nonce consumed directly (without a claim)
+  await context.db.insert(schema.consumedNonce).values({
+    allocator,
+    nonce: BigInt(nonce),
+    chainId,
+    claimHash: null, // null because consumed directly, not via claim
+    timestamp: event.block.timestamp,
+    blockNumber: event.block.number,
+  }).onConflictDoNothing(); // In case the nonce was already consumed
 });
 
 // Other events that we'll implement later
