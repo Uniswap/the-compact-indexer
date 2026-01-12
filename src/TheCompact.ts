@@ -1,6 +1,61 @@
 import { Context, ponder } from "ponder:registry";
-import { zeroAddress, erc20Abi, Address } from "viem";
+import { zeroAddress, erc20Abi, Address, Hex } from "viem";
 import schema from "ponder:schema"
+import { and, eq, lt } from "ponder";
+
+// 24 hours in seconds
+const RETENTION_SECONDS = 24n * 60n * 60n;
+
+// Number of old blocks to cleanup per block event (to spread the load)
+const CLEANUP_BATCH_SIZE = 50;
+
+// ============================================================================
+// BLOCK TRACKER - Track indexed blocks for cross-indexer consistency checks
+// ============================================================================
+
+ponder.on("BlockTracker:block", async ({ event, context }) => {
+  const chainId = BigInt(context.network.chainId);
+  const { number: blockNumber, hash: blockHash, timestamp: blockTimestamp } = event.block;
+
+  // Insert the block record (skip if already exists)
+  await context.db
+    .insert(schema.indexedBlock)
+    .values({
+      chainId,
+      blockNumber,
+      blockHash,
+      blockTimestamp,
+      indexedAt: blockTimestamp,
+    })
+    .onConflictDoNothing();
+
+  // Cleanup old blocks (older than 24 hours from current block timestamp)
+  const cutoffTimestamp = blockTimestamp - RETENTION_SECONDS;
+  
+  // Query for old blocks to delete
+  const oldBlocks = await context.db.sql
+    .select({ blockNumber: schema.indexedBlock.blockNumber })
+    .from(schema.indexedBlock)
+    .where(
+      and(
+        eq(schema.indexedBlock.chainId, chainId),
+        lt(schema.indexedBlock.blockTimestamp, cutoffTimestamp)
+      )
+    )
+    .limit(CLEANUP_BATCH_SIZE);
+
+  // Delete old blocks
+  for (const oldBlock of oldBlocks) {
+    await context.db.delete(schema.indexedBlock, {
+      blockNumber: oldBlock.blockNumber,
+      chainId,
+    });
+  }
+});
+
+// ============================================================================
+// THE COMPACT EVENT HANDLERS
+// ============================================================================
 
 // Reset period values in seconds
 const ResetPeriod = {

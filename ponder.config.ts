@@ -31,4 +31,19 @@ export default createConfig({
       },
     },
   },
+  blocks: {
+    // Block tracking for cross-indexer consistency checks (24-hour retention)
+    BlockTracker: {
+      network: {
+        mainnet: { startBlock: 23369559, interval: 1 },
+        sepolia: { startBlock: 9276490, interval: 1 },
+        base: { startBlock: 35587737, interval: 1 },
+        baseSepolia: { startBlock: 31515296, interval: 1 },
+        optimism: { startBlock: 141633918, interval: 1 },
+        optimismSepolia: { startBlock: 33498177, interval: 1 },
+        unichain: { startBlock: 27205887, interval: 1 },
+        unichainSepolia: { startBlock: 32397235, interval: 1 },
+      },
+    },
+  },
 });
