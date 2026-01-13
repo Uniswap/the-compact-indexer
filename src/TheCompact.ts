@@ -1,13 +1,30 @@
 import { Context, ponder } from "ponder:registry";
 import { zeroAddress, erc20Abi, Address, Hex } from "viem";
 import schema from "ponder:schema"
-import { and, eq, lt } from "ponder";
 
 // 24 hours in seconds
 const RETENTION_SECONDS = 24n * 60n * 60n;
 
-// Number of old blocks to cleanup per block event (to spread the load)
-const CLEANUP_BATCH_SIZE = 50;
+// Estimated blocks per 24 hours for each chain (used for cleanup estimation)
+// These are approximate - cleanup doesn't need to be exact
+const BLOCKS_PER_24H: Record<number, bigint> = {
+  1: 7200n,        // Mainnet: ~12s blocks
+  11155111: 7200n, // Sepolia: ~12s blocks
+  8453: 43200n,    // Base: ~2s blocks
+  84532: 43200n,   // Base Sepolia: ~2s blocks
+  42161: 86400n,   // Arbitrum: ~1s blocks (variable)
+  421614: 86400n,  // Arbitrum Sepolia
+  10: 43200n,      // Optimism: ~2s blocks
+  11155420: 43200n,// Optimism Sepolia
+  130: 86400n,     // Unichain: ~1s blocks
+  1301: 86400n,    // Unichain Sepolia
+};
+
+// How often to run cleanup (every N blocks)
+const CLEANUP_INTERVAL = 1000n;
+
+// How many old blocks to attempt to delete during cleanup
+const CLEANUP_BATCH_SIZE = 100n;
 
 // ============================================================================
 // BLOCK TRACKER - Track indexed blocks for cross-indexer consistency checks
@@ -15,7 +32,15 @@ const CLEANUP_BATCH_SIZE = 50;
 
 ponder.on("BlockTracker:block", async ({ event, context }) => {
   const chainId = BigInt(context.network.chainId);
+  const chainIdNum = context.network.chainId;
   const { number: blockNumber, hash: blockHash, timestamp: blockTimestamp } = event.block;
+
+  // OPTIMIZATION 1: Skip blocks older than 24 hours entirely
+  // This makes historical sync essentially free for block tracking
+  const nowApprox = BigInt(Math.floor(Date.now() / 1000));
+  if (blockTimestamp < nowApprox - RETENTION_SECONDS) {
+    return; // Exit immediately, no database operations
+  }
 
   // Insert the block record (skip if already exists)
   await context.db
@@ -29,27 +54,27 @@ ponder.on("BlockTracker:block", async ({ event, context }) => {
     })
     .onConflictDoNothing();
 
-  // Cleanup old blocks (older than 24 hours from current block timestamp)
-  const cutoffTimestamp = blockTimestamp - RETENTION_SECONDS;
-  
-  // Query for old blocks to delete
-  const oldBlocks = await context.db.sql
-    .select({ blockNumber: schema.indexedBlock.blockNumber })
-    .from(schema.indexedBlock)
-    .where(
-      and(
-        eq(schema.indexedBlock.chainId, chainId),
-        lt(schema.indexedBlock.blockTimestamp, cutoffTimestamp)
-      )
-    )
-    .limit(CLEANUP_BATCH_SIZE);
+  // OPTIMIZATION 2: Only run cleanup every N blocks (not every block)
+  if (blockNumber % CLEANUP_INTERVAL !== 0n) {
+    return;
+  }
 
-  // Delete old blocks
-  for (const oldBlock of oldBlocks) {
-    await context.db.delete(schema.indexedBlock, {
-      blockNumber: oldBlock.blockNumber,
-      chainId,
-    });
+  // OPTIMIZATION 3: Use block number estimation for cleanup (no SELECT query!)
+  // Estimate the cutoff block number based on chain's block time
+  const blocksPerDay = BLOCKS_PER_24H[chainIdNum] ?? 7200n;
+  const estimatedCutoffBlock = blockNumber - blocksPerDay;
+  
+  // Delete old blocks by primary key (very fast - no index scan needed)
+  // We delete a batch of blocks around the estimated cutoff
+  for (let b = estimatedCutoffBlock; b > estimatedCutoffBlock - CLEANUP_BATCH_SIZE && b > 0n; b--) {
+    try {
+      await context.db.delete(schema.indexedBlock, {
+        blockNumber: b,
+        chainId,
+      });
+    } catch {
+      // Block might not exist, that's fine
+    }
   }
 });
 
